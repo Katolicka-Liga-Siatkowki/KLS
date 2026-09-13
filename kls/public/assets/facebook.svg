@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-labelledby="title">
+  <title id="title">Facebook</title>
+  <circle cx="16" cy="16" r="16" fill="#0866ff"/>
+  <path fill="#fff" d="M18.45 27.5v-9.65h3.24l.49-3.76h-3.73v-2.4c0-1.09.3-1.83 1.87-1.83h2V6.5a26.7 26.7 0 0 0-2.91-.15c-2.88 0-4.85 1.76-4.85 4.99v2.78H11.3v3.76h3.26v9.65h3.89z"/>
+</svg>

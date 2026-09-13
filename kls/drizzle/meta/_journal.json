@@ -1,0 +1,55 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1788543665581,
+      "tag": "0000_purple_cerebro",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1788559260035,
+      "tag": "0001_panoramic_colleen_wing",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788561417019,
+      "tag": "0002_fixed_starfox",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1788561417020,
+      "tag": "0003_player_photos",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1788561417021,
+      "tag": "0004_admin_sessions",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1788561417022,
+      "tag": "0005_media_assets",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1788561417023,
+      "tag": "0006_gallery_news_and_cropping",
+      "breakpoints": true
+    }
+  ]
+}

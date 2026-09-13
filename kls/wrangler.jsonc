@@ -1,0 +1,12 @@
+{
+  "$schema":"./node_modules/wrangler/config-schema.json",
+  "name":"kls",
+  "account_id":"e9f2fa314d48a4997dc0a038cbcc8226",
+  "main":"vinext/server/app-router-entry",
+  "compatibility_date":"2026-09-13",
+  "compatibility_flags":["nodejs_compat"],
+  "workers_dev":true,
+  "keep_vars":true,
+  "d1_databases":[{"binding":"DB","database_name":"kls-db","database_id":"1ad93945-b21b-46f8-b3e3-877e51442488","migrations_dir":"drizzle"}],
+  "vars":{"CONTACT_EMAIL":"katolickaligasiatkowki@gmail.com","INITIAL_ADMIN_EMAIL":"katolickaligasiatkowki@gmail.com","KLS_SHEET_ID":""}
+}
