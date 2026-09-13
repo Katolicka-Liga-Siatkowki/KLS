@@ -1,0 +1,21 @@
+name: Import KLS source
+on:
+  push:
+    paths: [".github/workflows/import-source.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract website source
+        run: |
+          test ! -d kls
+          tar -xzf kls-source.tar.gz
+          git config user.name "KLS source import"
+          git config user.email "katolickaligasiatkowki@gmail.com"
+          git add kls README.md
+          git commit -m "Extract KLS website source for Cloudflare"
+          git push
