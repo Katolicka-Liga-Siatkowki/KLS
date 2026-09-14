@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { getSheetLinks, parseSheetLinks } from "./sheet-settings";
 import type { LeagueMatch, Player, Standing, Team } from "./league-types";
 
 const sheetId = () => (env as unknown as { KLS_SHEET_ID?: string }).KLS_SHEET_ID?.trim() || "";
@@ -169,11 +170,14 @@ function parseTeams(teamRows: string[][], playerRows: string[][], standings: Sta
 }
 
 export async function loadGoogleSheetsLeague() {
-  if (!sheetId()) throw new Error("Arkusz KLS nie został jeszcze podłączony.");
+  const savedLinks = await getSheetLinks();
+  const configured = savedLinks.table ? parseSheetLinks(savedLinks) : null;
+  if (!configured && !sheetId()) throw new Error("Arkusz KLS nie został jeszcze podłączony.");
+  const gids = configured?.gids ?? GIDS;
   const results = await Promise.allSettled(([1] as const).map(async (league) => {
-    const source = SHEETS[league];
+    const source = configured ? { id: configured.id, title: "Tabela KLS" } : SHEETS[league];
     const [tableRows, matchRows, teamRows, playerRows] = await Promise.all([
-      csv(source.id, GIDS.table), csv(source.id, GIDS.matches, "A4:N"), csv(source.id, GIDS.teams), csv(source.id, GIDS.players),
+      csv(source.id, gids.table), csv(source.id, gids.matches, "A4:N"), csv(source.id, gids.teams), csv(source.id, gids.players),
     ]);
     const matches = parseMatches(matchRows, league);
     const standings = addMatchForm(parseStandings(tableRows, league), matches);
@@ -197,3 +201,4 @@ export async function loadGoogleSheetsLeague() {
     }])),
   };
 }
+

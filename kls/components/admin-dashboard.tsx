@@ -1,5 +1,6 @@
 "use client";
 
+import { SheetSettings } from "./sheet-settings";
 import { FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -421,6 +422,7 @@ export function AdminDashboard({ snapshot, user, signOutPath }: Props) {
           </TabsContent>
 
           <TabsContent value="matches">
+            <SheetSettings />
             <section className="admin-card sheet-source-card">
               <div><p className="eyebrow">Źródło oficjalnych danych</p><h2>Arkusze Google</h2><p>Tabela, mecze do rozegrania i rozegrane są pobierane automatycznie. Wyniki wpisuj nadal w arkuszach.</p></div>
               <div className="sheet-source-grid">{[1].map((league) => {
@@ -540,3 +542,4 @@ export function AdminDashboard({ snapshot, user, signOutPath }: Props) {
     </main>
   );
 }
+
