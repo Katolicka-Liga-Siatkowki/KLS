@@ -6,5 +6,7 @@ declare namespace Cloudflare {
     INITIAL_ADMIN_EMAIL?: string;
     ADMIN_PASSWORD?: string;
     SESSION_SECRET?: string;
+    GOOGLE_MAIL_URL?: string;
+    GOOGLE_MAIL_SECRET?: string;
   }
 }

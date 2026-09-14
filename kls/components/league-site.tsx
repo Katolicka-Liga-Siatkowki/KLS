@@ -59,12 +59,16 @@ function ContactForm({ subject = "Kontakt ze strony KLS", attachments = false }:
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setStatus("sending"); setMessage("");
     const form = event.currentTarget;
+    try {
     const response = await fetch("/api/contact", { method: "POST", body: new FormData(form) });
     const result = await response.json().catch(() => ({})) as { error?: string };
     if (response.ok) { form.reset(); setStatus("sent"); setMessage("Wiadomość została wysłana do Zarządu KLS."); }
     else { setStatus("error"); setMessage(result.error || "Nie udało się wysłać wiadomości."); }
+    } catch { setStatus("error"); setMessage("Błąd połączenia. Sprawdź połączenie z internetem i spróbuj ponownie."); }
   }
   return <form className="contact-form" onSubmit={submit}>
+    <input type="hidden" name="kind" value={attachments ? "registration" : "contact"} />
+    <label style={{display:"none"}} aria-hidden="true">Zostaw puste<input name="website" tabIndex={-1} autoComplete="off" /></label>
     <div className="form-pair"><label>Imię i nazwisko<input name="name" required /></label><label>Twój adres e-mail<input name="email" type="email" required /></label></div>
     <label>Temat<input name="subject" defaultValue={subject} required /></label>
     <label>Wiadomość<textarea name="message" rows={6} required /></label>

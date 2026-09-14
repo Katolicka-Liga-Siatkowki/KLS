@@ -93,6 +93,7 @@ function SubmitButton({ busy, children }: { busy: boolean; children: React.React
 }
 
 export function AdminDashboard({ snapshot, user, signOutPath }: Props) {
+  const registration = snapshot.sections.find(item => item.sectionKey === "zgloszenia");
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [teamEdit, setTeamEdit] = useState<Team | null>(null);
@@ -177,6 +178,11 @@ export function AdminDashboard({ snapshot, user, signOutPath }: Props) {
           </TabsList>
 
           <TabsContent value="dashboard">
+            {registration && <section className="admin-card compact-form">
+              <div><h2>Zgłoszenia drużyn</h2><p>{registration.visible ? "Zakładka jest widoczna i przyjmuje zgłoszenia." : "Zakładka jest wyłączona. Formularz zgłoszeń jest niedostępny."} Kontakt z zarządem pozostaje dostępny.</p></div>
+              <Button role="switch" aria-checked={registration.visible} aria-label="Przyjmowanie zgłoszeń" disabled={busy} onClick={() => perform(registration.visible ? "Wyłączono zgłoszenia." : "Włączono zgłoszenia.", () => api("/api/admin/content", "PATCH", {id: registration.id, visible: !registration.visible}))}>{registration.visible ? "Wyłącz zgłoszenia" : "Włącz zgłoszenia"}</Button>
+            </section>}
+
             <section className="stat-grid">
               <article><Trophy /><strong>{activeTeams.length}</strong><span>aktywnych drużyn</span></article>
               <article><UsersRound /><strong>{activePlayers.length}</strong><span>aktywnych zawodników</span></article>

@@ -9,6 +9,7 @@ const standardPages = new Set(["aktualnosci", "tabela", "mecze", "druzyny", "gal
 export default async function LeagueSectionPage({ params }: { params: Promise<{ section: string }> }) {
   const { section } = await params;
   const snapshot = await getLeagueSnapshot();
+  if (section === "zgloszenia" && !snapshot.sections.some(item => item.sectionKey === section && item.visible)) notFound();
   const customPage = snapshot.sections.some((item) => item.kind === "custom" && item.visible && item.sectionKey === section);
   if (!standardPages.has(section) && !customPage) notFound();
   return <LeagueSite snapshot={snapshot} page={section} />;
