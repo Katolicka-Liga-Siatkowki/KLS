@@ -1,5 +1,6 @@
 "use client";
 
+import { Documents } from "./documents";
 import { type FormEvent, useMemo, useState } from "react";
 import { CalendarDays, ChevronRight, Download, Images, Mail, MapPin, Menu, Newspaper, Paperclip, Send, ShieldCheck, Trophy, Users, X } from "lucide-react";
 import type { LeagueMatch, LeagueSnapshot, Team } from "@/lib/league-types";
@@ -272,10 +273,7 @@ export function LeagueSite({ snapshot, page = "start", teamId, galleryAlbumId }:
         {page === "dokumenty" && <section className="content-section" id="dokumenty" data-section-key="dokumenty" {...sectionProps("dokumenty")}>
           <div className="section-title"><div><span className="eyebrow">{section("dokumenty")?.eyebrow}</span><h2>{section("dokumenty")?.title}</h2></div><p>{section("dokumenty")?.body}</p></div>
           <SectionImage src={section("dokumenty")?.imageUrl} title={section("dokumenty")?.title ?? "Dokumenty"} />
-          <div className="rule-grid">
-            <article><span>PDF · REGULAMIN</span><h3>Regulamin Katolickiej Ligi Siatkówki</h3><p>Zasady uczestnictwa, organizacji spotkań, punktacji i przebiegu rozgrywek.</p><p>Regulamin KLS zostanie opublikowany po przekazaniu aktualnego dokumentu.</p></article>
-            <article className="dark-card"><span>PDF · PZPS</span><h3>Oficjalne przepisy gry w piłkę siatkową 2025–2028</h3><p>Polska wersja przepisów opublikowanych przez FIVB i udostępnionych przez PZPS.</p><a className="btn light" href="/files/oficjalne-przepisy-gry-w-pilke-siatkowa-2025-2028.pdf" download>Pobierz przepisy</a></article>
-          </div>
+          <Documents />
         </section>}
         {snapshot.sections.filter((item) => item.kind === "custom" && item.visible && item.sectionKey === page).map((item) => (
           <section className={`content-section custom-section custom-${item.layout}`} id={item.sectionKey} data-section-key={item.sectionKey} style={{ order: item.sortOrder * 2 }} key={item.id}>

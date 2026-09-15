@@ -1,5 +1,6 @@
 "use client";
 
+import { Documents } from "./documents";
 import { SheetSettings } from "./sheet-settings";
 import { FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
@@ -174,9 +175,11 @@ export function AdminDashboard({ snapshot, user, signOutPath }: Props) {
             <TabsTrigger value="website"><PanelsTopLeft /> Strona</TabsTrigger>
             <TabsTrigger value="links"><Link2 /> Linki</TabsTrigger>
             <TabsTrigger value="matches"><FileSpreadsheet /> Arkusze</TabsTrigger>
+            <TabsTrigger value="documents"><FileSpreadsheet /> Dokumenty</TabsTrigger>
             <TabsTrigger value="admins"><ShieldCheck /> Dostęp</TabsTrigger>
           </TabsList>
 
+          <TabsContent value="documents"><Documents admin /></TabsContent>
           <TabsContent value="dashboard">
             {registration && <section className="admin-card compact-form">
               <div><h2>Zgłoszenia drużyn</h2><p>{registration.visible ? "Zakładka jest widoczna i przyjmuje zgłoszenia." : "Zakładka jest wyłączona. Formularz zgłoszeń jest niedostępny."} Kontakt z zarządem pozostaje dostępny.</p></div>
