@@ -161,11 +161,7 @@ export function LeagueSite({ snapshot, page = "start", teamId, galleryAlbumId }:
           </div>
         </section>}
 
-        {["start", "tabela", "mecze", "druzyny"].includes(page) && <section className="league-bar" aria-label="Rozgrywki KLS">
-          <span>ROZGRYWKI</span>
-          <div><strong>KLS</strong></div>
-          <small className={snapshot.dataSource.mode === "google-sheets" ? "source-live" : "source-backup"}>{snapshot.dataSource.mode === "google-sheets" ? "Dane z Arkuszy Google" : snapshot.dataSource.mode === "mixed" ? "Część danych z kopii zapasowej" : "Dane rozgrywek zostaną wkrótce opublikowane"}</small>
-        </section>}
+
 
         {(page === "start" || page === "aktualnosci") && <section className="content-section news-section" id="aktualnosci">
           <div className="section-title"><div><span className="eyebrow">{section("aktualnosci")?.eyebrow ?? "NA BIEŻĄCO"}</span><h2>{section("aktualnosci")?.title ?? "Aktualności ligi"}</h2></div><p>{section("aktualnosci")?.body ?? "Najważniejsze informacje organizacyjne i sportowe Katolickiej Ligi Siatkówki."}</p></div>
