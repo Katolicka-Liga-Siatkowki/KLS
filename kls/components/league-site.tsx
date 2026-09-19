@@ -188,7 +188,8 @@ export function LeagueSite({ snapshot, page = "start", teamId, galleryAlbumId }:
         {(page === "start" || page === "tabela") && <section className="content-section" id="tabela" data-section-key="tabela" {...sectionProps("tabela")}>
           <div className="section-title"><div><span className="eyebrow">{section("tabela")?.eyebrow}</span><h2>{section("tabela")?.title}</h2></div><p>{section("tabela")?.body}</p></div>
           <SectionImage src={section("tabela")?.imageUrl} title={section("tabela")?.title ?? "Tabela"} />
-          <div className="table-wrap">
+          <p className="table-scroll-note">Przesuń tabelę w bok, aby zobaczyć wszystkie statystyki i formę drużyn.</p>
+          <div className="table-wrap" role="region" aria-label="Tabela ligowa — wszystkie statystyki" tabIndex={0}>
             <table>
               <thead><tr><th>#</th><th>Drużyna</th><th>M</th><th>W</th><th>P</th><th>Sety</th><th>Pkt</th><th>Forma</th></tr></thead>
               <tbody>{(page === "start" ? standings.slice(0, 5) : standings).map((row, index) => (

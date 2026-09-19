@@ -77,3 +77,31 @@ footer{background:linear-gradient(110deg,#f3c623,#dda500);color:var(--navy);padd
 .brand img,.footer-brand img { object-fit:contain; }
 
 .nearest-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.nearest-grid .match-card{margin:0}.match-calendar{margin-top:18px;border-top:1px solid #d9dfdf;padding-top:12px}.match-calendar summary{cursor:pointer;font-weight:800;color:var(--navy)}.match-calendar>div{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}.match-calendar a,.match-calendar button{font:inherit;font-size:.85rem;padding:9px 12px;border:1px solid #bca247;border-radius:6px;background:#fff;color:var(--navy);cursor:pointer;text-decoration:none}.match-calendar small,.calendar-note{display:block;color:#586578;line-height:1.5;margin-top:8px}.board-announcements{border-top:4px solid var(--gold);background:#fff9dc}.board-announcements .news-grid article{border-top:3px solid var(--navy)}@media(max-width:700px){.nearest-grid{grid-template-columns:1fr}}
+/* Keep standings inside the viewport so their own horizontal scrolling works. */
+#tabela{width:100%;min-width:0}
+#tabela .table-wrap{width:100%;max-width:100%;min-width:0;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+#tabela .table-wrap:focus-visible{outline:3px solid var(--navy);outline-offset:3px}
+.table-scroll-note{display:none}
+@media(max-width:900px){
+  #tabela{padding-inline:12px}
+  #tabela table{min-width:600px;table-layout:fixed}
+  #tabela th,#tabela td{padding:12px 6px;font-size:.8rem}
+  #tabela th{font-size:.65rem;letter-spacing:.02em}
+  #tabela th:first-child{width:32px}
+  #tabela th:nth-child(2){width:155px}
+  #tabela th:nth-child(3),#tabela th:nth-child(4),#tabela th:nth-child(5){width:40px}
+  #tabela th:nth-child(6){width:62px}
+  #tabela th:nth-child(7){width:44px}
+  #tabela th:last-child{width:100px}
+  #tabela .team-name{gap:6px;overflow-wrap:anywhere}
+  #tabela .team-table-mark{width:26px;height:26px;flex-basis:26px;font-size:.6rem}
+  #tabela .form-dots{gap:3px;white-space:nowrap}
+  #tabela .form-dots i{width:15px;height:15px;flex-shrink:0}
+  #tabela .form-empty{font-size:.7rem}
+  #tabela td:nth-child(2){position:sticky;background:#fff;z-index:1}
+  #tabela th:nth-child(2){position:sticky;z-index:2}
+  #tabela :is(th,td):first-child{left:0}
+  #tabela :is(th,td):nth-child(2){left:0;box-shadow:3px 0 5px -4px #0a234280}
+}
+@media(max-width:625px){.table-scroll-note{display:block;margin:0 0 12px;color:#586577;font-size:.8rem;line-height:1.5}}
+
