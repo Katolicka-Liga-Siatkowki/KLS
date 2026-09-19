@@ -28,6 +28,8 @@ export type LeagueMatch = {
   league: number;
   matchDate: string;
   displayDate?: string;
+  round?: number;
+  timeKnown?: boolean;
   homeTeamId: number;
   awayTeamId: number;
   homeTeam: string;
@@ -63,6 +65,7 @@ export type GalleryAlbum = {
 };
 
 export type NewsPost = {
+  announcement?: boolean;
   id: number;
   title: string;
   body: string;

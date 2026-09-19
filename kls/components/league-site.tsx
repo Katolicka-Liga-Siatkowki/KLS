@@ -1,5 +1,7 @@
 "use client";
 
+import { MatchCalendar } from "./match-calendar";
+import { nextRound } from "@/lib/match-calendar";
 import { Documents } from "./documents";
 import { type FormEvent, useMemo, useState } from "react";
 import { CalendarDays, ChevronRight, Download, Images, Mail, MapPin, Menu, Newspaper, Paperclip, Send, ShieldCheck, Trophy, Users, X } from "lucide-react";
@@ -49,7 +51,9 @@ function MatchCard({ match }: { match: LeagueMatch }) {
         </div>
         <strong>{match.awayTeam}</strong>
       </div>
+      {match.round && <small>{match.round}. kolejka</small>}
       {match.venue && <div className="match-venue"><MapPin size={15} />{match.venue}</div>}
+      <MatchCalendar match={match} />
     </article>
   );
 }
@@ -106,6 +110,7 @@ export function LeagueSite({ snapshot, page = "start", teamId, galleryAlbumId }:
   const teams = snapshot.teams.filter((team) => team.league === league && team.active);
   const matches = snapshot.matches.filter((match) => match.league === league && match.published);
   const upcoming = useMemo(() => matches.filter((match) => match.status === "scheduled").sort((a, b) => a.matchDate.localeCompare(b.matchDate)), [matches]);
+  const nearest = nextRound(matches, snapshot.dataSource.updatedAt.slice(0,10));
   const finished = useMemo(() => matches.filter((match) => match.status === "finished").sort((a, b) => b.matchDate.localeCompare(a.matchDate)), [matches]);
   const sectionMap = new Map(snapshot.sections.map((section) => [section.sectionKey, section]));
   const section = (key: string) => sectionMap.get(key);
@@ -124,6 +129,7 @@ export function LeagueSite({ snapshot, page = "start", teamId, galleryAlbumId }:
   const teamPlace = teamPage ? (snapshot.standings[String(teamPage.league)] ?? []).findIndex((row) => row.teamId === teamPage.id || row.name === teamPage.name) + 1 : 0;
   const galleryAlbum = galleryAlbumId ? snapshot.galleryAlbums.find((album) => album.id === galleryAlbumId && album.visible) : undefined;
   const visibleNews = snapshot.newsPosts.filter((post) => post.visible);
+  const announcements = visibleNews.filter(post => post.announcement);
 
   return (
     <>
@@ -163,11 +169,18 @@ export function LeagueSite({ snapshot, page = "start", teamId, galleryAlbumId }:
 
 
 
+        {page === "start" && <section className="content-section alternate nearest-round" {...sectionProps("mecze")}><div className="section-title"><div><span className="eyebrow">{nearest.label}</span><h2>Najbliższa kolejka</h2></div><a className="section-more" href="/mecze">Cały terminarz <ChevronRight size={17} /></a></div><div className="nearest-grid">{nearest.matches.length ? nearest.matches.map(match => <MatchCard key={match.id} match={match} />) : <p className="empty-state">Terminarz najbliższej kolejki nie został jeszcze ustalony.</p>}</div></section>}
+
+        {page === "start" && announcements.length > 0 && <section className="content-section board-announcements" aria-labelledby="board-heading">
+          <div className="section-title"><div><span className="eyebrow">OD ZARZĄDU LIGI</span><h2 id="board-heading">Komunikaty zarządu</h2></div></div>
+          <div className="news-grid">{announcements.map(post => <article key={post.id}><ShieldCheck /><span>{new Date(post.publishedAt).toLocaleDateString("pl-PL")}</span><h3>{post.title}</h3><p style={{whiteSpace:"pre-line"}}>{post.body}</p>{post.linkUrl && <a href={post.linkUrl} target="_blank" rel="noopener">{post.linkLabel || "Więcej informacji"}</a>}</article>)}</div>
+        </section>}
+
         {(page === "start" || page === "aktualnosci") && <section className="content-section news-section" id="aktualnosci">
           <div className="section-title"><div><span className="eyebrow">{section("aktualnosci")?.eyebrow ?? "NA BIEŻĄCO"}</span><h2>{section("aktualnosci")?.title ?? "Aktualności ligi"}</h2></div><p>{section("aktualnosci")?.body ?? "Najważniejsze informacje organizacyjne i sportowe Katolickiej Ligi Siatkówki."}</p></div>
           <SectionImage src={section("aktualnosci")?.imageUrl} title={section("aktualnosci")?.title ?? "Aktualności"} />
           <div className="news-grid">
-            {(visibleNews.length ? visibleNews.slice(0, page === "start" ? 3 : undefined) : [{ id: -1, title: "Rozgrywki KLS", body: "Aktualne tabele, terminarz i wyniki ligi są publikowane na bieżąco na stronie.", publishedAt: "2026-09-01", linkLabel: "", linkUrl: "", visible: true }]).map((post) => <article key={post.id}><Newspaper /><span>{new Date(post.publishedAt).toLocaleDateString("pl-PL")}</span><h3>{post.title}</h3><p>{post.body}</p>{post.linkUrl && <a href={post.linkUrl} target="_blank" rel="noopener">{post.linkLabel || "Więcej informacji"} <ChevronRight size={16} /></a>}</article>)}
+            {(visibleNews.length ? visibleNews.slice(0, page === "start" ? 3 : undefined) : [{ id: -1, title: "Rozgrywki KLS", body: "Aktualne tabele, terminarz i wyniki ligi są publikowane na bieżąco na stronie.", publishedAt: "2026-09-01", linkLabel: "", linkUrl: "", visible: true }]).map((post) => <article key={post.id}><Newspaper />{"announcement" in post && post.announcement && <strong>Komunikat zarządu</strong>}<span>{new Date(post.publishedAt).toLocaleDateString("pl-PL")}</span><h3>{post.title}</h3><p>{post.body}</p>{post.linkUrl && <a href={post.linkUrl} target="_blank" rel="noopener">{post.linkLabel || "Więcej informacji"} <ChevronRight size={16} /></a>}</article>)}
           </div>
           {page === "start" && <a className="section-more" href="/aktualnosci">Wszystkie aktualności <ChevronRight size={17} /></a>}
         </section>}
@@ -186,14 +199,14 @@ export function LeagueSite({ snapshot, page = "start", teamId, galleryAlbumId }:
           {page === "start" && <a className="section-more" href="/tabela">Zobacz pełną tabelę <ChevronRight size={17} /></a>}
         </section>}
 
-        {(page === "start" || page === "mecze") && <section className="content-section alternate" id="mecze" data-section-key="mecze" {...sectionProps("mecze")}>
+        {page === "mecze" && <section className="content-section alternate" id="mecze" data-section-key="mecze" {...sectionProps("mecze")}>
           <div className="section-title"><div><span className="eyebrow">{section("mecze")?.eyebrow}</span><h2>{section("mecze")?.title}</h2></div><p>{section("mecze")?.body}</p></div>
           <SectionImage src={section("mecze")?.imageUrl} title={section("mecze")?.title ?? "Mecze"} />
-          <div className={`matches-layout ${page === "start" ? "single" : ""}`}>
-            <div><h3>Najbliższe mecze</h3>{upcoming.length ? upcoming.slice(0, page === "start" ? 4 : undefined).map((match) => <MatchCard key={match.id} match={match} />) : <p className="empty-state">Brak zaplanowanych spotkań.</p>}</div>
+          <div className="matches-layout">
+            <div><h3>Najbliższe mecze</h3>{upcoming.length ? upcoming.map((match) => <MatchCard key={match.id} match={match} />) : <p className="empty-state">Brak zaplanowanych spotkań.</p>}</div>
             {page === "mecze" && <div><h3>Ostatnie wyniki</h3>{finished.length ? finished.slice(0, 12).map((match) => <MatchCard key={match.id} match={match} />) : <p className="empty-state">Nie wpisano jeszcze wyników.</p>}</div>}
           </div>
-          {page === "start" && <a className="section-more" href="/mecze">Pełny terminarz i wyniki <ChevronRight size={17} /></a>}
+
         </section>}
 
         {page === "druzyny" && <section className="content-section" id="druzyny" data-section-key="druzyny" {...sectionProps("druzyny")}>

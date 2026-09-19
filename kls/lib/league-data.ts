@@ -207,7 +207,7 @@ export async function getLeagueSnapshot(options: { useGoogleSheets?: boolean; in
     db.prepare("SELECT id, kind, entity_key, updated_at, position_x, position_y FROM media_assets").all(),
     db.prepare("SELECT id, slug, name, description, sort_order, visible FROM gallery_albums ORDER BY sort_order, id").all(),
     db.prepare("SELECT id, album_id, match_key, caption, sort_order FROM gallery_photos ORDER BY sort_order, id").all(),
-    db.prepare("SELECT id, title, body, link_label, link_url, published_at, visible FROM news_posts ORDER BY published_at DESC, id DESC").all(),
+    db.prepare("SELECT id, title, body, link_label, link_url, published_at, visible, announcement FROM news_posts ORDER BY published_at DESC, id DESC").all(),
   ]);
 
   const mediaUrls = new Map((mediaRows.results ?? []).map((row) => [
@@ -217,7 +217,7 @@ export async function getLeagueSnapshot(options: { useGoogleSheets?: boolean; in
   const mediaPositions = new Map((mediaRows.results ?? []).map((row) => [`${String(row.kind)}:${String(row.entity_key)}`, { x: Number(row.position_x ?? 50), y: Number(row.position_y ?? 50) }]));
   const galleryPhotos = (galleryPhotoRows.results ?? []).map((row) => ({ id: Number(row.id), albumId: row.album_id == null ? null : Number(row.album_id), matchKey: String(row.match_key), url: `/api/gallery-photo?id=${Number(row.id)}`, caption: String(row.caption), sortOrder: Number(row.sort_order) })) satisfies GalleryPhoto[];
   const galleryAlbums = (albumRows.results ?? []).map((row) => ({ id: Number(row.id), slug: String(row.slug), name: String(row.name), description: String(row.description), sortOrder: Number(row.sort_order), visible: bool(row.visible), photos: galleryPhotos.filter((photo) => photo.albumId === Number(row.id)) })) satisfies GalleryAlbum[];
-  const newsPosts = (newsRows.results ?? []).map((row) => ({ id: Number(row.id), title: String(row.title), body: String(row.body), linkLabel: String(row.link_label), linkUrl: String(row.link_url), publishedAt: String(row.published_at), visible: bool(row.visible) })) satisfies NewsPost[];
+  const newsPosts = (newsRows.results ?? []).map((row) => ({ announcement: bool(row.announcement), id: Number(row.id), title: String(row.title), body: String(row.body), linkLabel: String(row.link_label), linkUrl: String(row.link_url), publishedAt: String(row.published_at), visible: bool(row.visible) })) satisfies NewsPost[];
 
   const playerPhotoUrls = new Map((playerPhotoRows.results ?? []).map((row) => [
     `${Number(row.league)}:${String(row.team_key)}:${String(row.player_key)}`,

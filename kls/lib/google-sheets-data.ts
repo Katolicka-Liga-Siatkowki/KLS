@@ -52,7 +52,7 @@ function stableId(league: number, name: string) {
 }
 
 function exportUrl(id: string, gid: string, range?: string) {
-  const rangeParam = range ? `&range=${encodeURIComponent(range)}` : "";
+  const rangeParam = range ? `&range=${encodeURIComponent(range)}&headers=0` : "";
   return `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&gid=${gid}${rangeParam}`;
 }
 
@@ -92,7 +92,7 @@ function dateValue(value: string, rowIndex: number) {
   const trimmed = value.trim();
   const iso = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{1,2}):(\d{2}))?/);
   if (iso) return { sort: `${iso[1]}-${iso[2]}-${iso[3]}T${iso[4] ?? "12"}:${iso[5] ?? "00"}`, display: trimmed };
-  const polish = trimmed.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})(?:\s+(\d{1,2}):(\d{2}))?/);
+  const polish = trimmed.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})(?:[ ,T]+(\d{1,2}):(\d{2}))?/);
   if (polish) {
     const year = polish[3].length === 2 ? `20${polish[3]}` : polish[3];
     return { sort: `${year}-${polish[2].padStart(2, "0")}-${polish[1].padStart(2, "0")}T${(polish[4] ?? "12").padStart(2, "0")}:${polish[5] ?? "00"}`, display: trimmed };
@@ -101,7 +101,10 @@ function dateValue(value: string, rowIndex: number) {
 }
 
 function parseMatches(rows: string[][], league: number): LeagueMatch[] {
+  let round: number | undefined;
   return rows.flatMap((row, index) => {
+    const marker = row[0]?.trim().match(/^(\d+)\.?$/);
+    if (marker) round = Number(marker[1]);
     const home = row[3]?.trim(), away = row[4]?.trim();
     if (!isTeamName(home) || !isTeamName(away)) return [];
     const homeRaw = row[5]?.trim(), awayRaw = row[7]?.trim();
@@ -111,6 +114,8 @@ function parseMatches(rows: string[][], league: number): LeagueMatch[] {
       id: stableId(league, `${index}:${home}:${away}`),
       league,
       matchDate: date.sort,
+      round,
+      timeKnown: /(?:[ T,])\s*\d{1,2}:\d{2}/.test(row[1] ?? ""),
       displayDate: date.display,
       homeTeamId: stableId(league, home),
       awayTeamId: stableId(league, away),

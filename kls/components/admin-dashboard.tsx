@@ -323,17 +323,18 @@ export function AdminDashboard({ snapshot, user, signOutPath }: Props) {
               <form className="admin-card admin-form" key={newsEdit?.id ?? "new-news"} onSubmit={(event) => {
                 event.preventDefault(); const data = fields(event);
                 perform(newsEdit ? "Aktualność została zapisana." : "Aktualność została opublikowana.", () => api("/api/admin/news", newsEdit ? "PATCH" : "POST", {
-                  id: newsEdit?.id, title: data.title, body: data.body, linkLabel: data.linkLabel, linkUrl: data.linkUrl, publishedAt: data.publishedAt,
+                  id: newsEdit?.id, announcement: data.announcement === "on", title: data.title, body: data.body, linkLabel: data.linkLabel, linkUrl: data.linkUrl, publishedAt: data.publishedAt,
                 }));
               }}>
                 <div><p className="eyebrow">NA BIEŻĄCO</p><h2>{newsEdit ? "Edytuj aktualność" : "Dodaj aktualność"}</h2></div>
+                <label className="check-row"><input name="announcement" type="checkbox" defaultChecked={newsEdit?.announcement ?? false} /> Komunikat zarządu — wyróżnij na stronie głównej</label>
                 <Label htmlFor="news-title">Tytuł</Label><Input id="news-title" name="title" defaultValue={newsEdit?.title} required />
                 <Label htmlFor="news-body">Treść</Label><textarea id="news-body" name="body" rows={7} defaultValue={newsEdit?.body} required />
                 <Label htmlFor="news-date">Data publikacji</Label><Input id="news-date" name="publishedAt" type="date" defaultValue={newsEdit?.publishedAt.slice(0, 10) ?? new Date().toISOString().slice(0, 10)} required />
                 <div className="form-pair"><div><Label htmlFor="news-link-label">Tekst linku</Label><Input id="news-link-label" name="linkLabel" placeholder="np. Zobacz komunikat" defaultValue={newsEdit?.linkLabel} /></div><div><Label htmlFor="news-link-url">Adres linku</Label><Input id="news-link-url" name="linkUrl" placeholder="https://…" defaultValue={newsEdit?.linkUrl} /></div></div>
                 <div className="form-actions"><SubmitButton busy={busy}>{newsEdit ? "Zapisz" : "Opublikuj"}</SubmitButton>{newsEdit && <Button type="button" variant="outline" onClick={() => setNewsEdit(null)}>Anuluj</Button>}</div>
               </form>
-              <section className="admin-card"><h2>Opublikowane informacje</h2><div className="admin-list">{snapshot.newsPosts.map((post) => <article key={post.id} className={!post.visible ? "is-muted" : ""}><div><strong>{post.title}</strong><span>{post.publishedAt.slice(0, 10)}{post.linkUrl ? " · zawiera link" : ""}</span></div><div><Button size="sm" variant="outline" onClick={() => setNewsEdit(post)}>Edytuj</Button><Button size="sm" variant="ghost" onClick={() => perform(post.visible ? "Aktualność została ukryta." : "Aktualność została pokazana.", () => api("/api/admin/news", "PATCH", { id: post.id, visible: !post.visible }))}>{post.visible ? "Ukryj" : "Pokaż"}</Button><Button size="sm" variant="ghost" onClick={() => perform("Aktualność została usunięta.", () => api("/api/admin/news", "DELETE", { id: post.id }))}><Trash2 /> Usuń</Button></div></article>)}</div></section>
+              <section className="admin-card"><h2>Opublikowane informacje</h2><div className="admin-list">{snapshot.newsPosts.map((post) => <article key={post.id} className={!post.visible ? "is-muted" : ""}><div><strong>{post.title}</strong><span>{post.announcement ? "Komunikat zarządu · " : ""}{post.publishedAt.slice(0, 10)}{post.linkUrl ? " · zawiera link" : ""}</span></div><div><Button size="sm" variant="outline" onClick={() => setNewsEdit(post)}>Edytuj</Button><Button size="sm" variant="ghost" onClick={() => perform(post.visible ? "Aktualność została ukryta." : "Aktualność została pokazana.", () => api("/api/admin/news", "PATCH", { id: post.id, visible: !post.visible }))}>{post.visible ? "Ukryj" : "Pokaż"}</Button><Button size="sm" variant="ghost" onClick={() => perform("Aktualność została usunięta.", () => api("/api/admin/news", "DELETE", { id: post.id }))}><Trash2 /> Usuń</Button></div></article>)}</div></section>
             </section>
           </TabsContent>
 

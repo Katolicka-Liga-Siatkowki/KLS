@@ -75,3 +75,5 @@ footer{background:linear-gradient(110deg,#f3c623,#dda500);color:var(--navy);padd
 /* KLS: skład bez zdjęć zawodników. */
 .player-grid article { grid-template-columns: 1fr; }
 .brand img,.footer-brand img { object-fit:contain; }
+
+.nearest-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.nearest-grid .match-card{margin:0}.match-calendar{margin-top:18px;border-top:1px solid #d9dfdf;padding-top:12px}.match-calendar summary{cursor:pointer;font-weight:800;color:var(--navy)}.match-calendar>div{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}.match-calendar a,.match-calendar button{font:inherit;font-size:.85rem;padding:9px 12px;border:1px solid #bca247;border-radius:6px;background:#fff;color:var(--navy);cursor:pointer;text-decoration:none}.match-calendar small,.calendar-note{display:block;color:#586578;line-height:1.5;margin-top:8px}.board-announcements{border-top:4px solid var(--gold);background:#fff9dc}.board-announcements .news-grid article{border-top:3px solid var(--navy)}@media(max-width:700px){.nearest-grid{grid-template-columns:1fr}}

@@ -3,6 +3,7 @@ import { requireAdminApi } from "@/lib/admin-auth";
 import { ensureSeeded, getD1 } from "@/lib/league-data";
 
 const newsFields = z.object({
+  announcement: z.boolean().default(false),
   title: z.string().trim().min(1).max(160), body: z.string().trim().min(1).max(5000),
   linkLabel: z.string().trim().max(80).default(""), linkUrl: z.string().trim().max(500).default(""),
   publishedAt: z.string().trim().min(1).max(40),
@@ -14,8 +15,8 @@ export async function POST(request: Request) {
   const parsed = fields.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: parsed.error.issues[0]?.message || "Sprawdź treść aktualności." }, { status: 400 });
   const now = new Date().toISOString(), value = parsed.data;
-  const result = await getD1().prepare("INSERT INTO news_posts (title, body, link_label, link_url, published_at, visible, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 1, ?, ?)")
-    .bind(value.title, value.body, value.linkLabel, value.linkUrl, value.publishedAt, now, now).run();
+  const result = await getD1().prepare("INSERT INTO news_posts (title, body, link_label, link_url, published_at, visible, created_at, updated_at, announcement) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?)")
+    .bind(value.title, value.body, value.linkLabel, value.linkUrl, value.publishedAt, now, now, value.announcement ? 1 : 0).run();
   return Response.json({ id: result.meta.last_row_id }, { status: 201 });
 }
 
@@ -24,10 +25,10 @@ export async function PATCH(request: Request) {
   const raw = await request.json().catch(() => null);
   const parsed = newsFields.partial().extend({ id: z.coerce.number().int().positive(), visible: z.boolean().optional() }).safeParse(raw);
   if (!parsed.success) return Response.json({ error: "Nieprawidłowe dane aktualności." }, { status: 400 });
-  const current = await getD1().prepare("SELECT title, body, link_label, link_url, published_at, visible FROM news_posts WHERE id = ?").bind(parsed.data.id).first();
+  const current = await getD1().prepare("SELECT title, body, link_label, link_url, published_at, visible, announcement FROM news_posts WHERE id = ?").bind(parsed.data.id).first();
   if (!current) return Response.json({ error: "Nie znaleziono aktualności." }, { status: 404 });
-  await getD1().prepare("UPDATE news_posts SET title = ?, body = ?, link_label = ?, link_url = ?, published_at = ?, visible = ?, updated_at = ? WHERE id = ?")
-    .bind(parsed.data.title ?? current.title, parsed.data.body ?? current.body, parsed.data.linkLabel ?? current.link_label, parsed.data.linkUrl ?? current.link_url, parsed.data.publishedAt ?? current.published_at, (parsed.data.visible ?? Boolean(current.visible)) ? 1 : 0, new Date().toISOString(), parsed.data.id).run();
+  await getD1().prepare("UPDATE news_posts SET title = ?, body = ?, link_label = ?, link_url = ?, published_at = ?, visible = ?, updated_at = ?, announcement = ? WHERE id = ?")
+    .bind(parsed.data.title ?? current.title, parsed.data.body ?? current.body, parsed.data.linkLabel ?? current.link_label, parsed.data.linkUrl ?? current.link_url, parsed.data.publishedAt ?? current.published_at, (parsed.data.visible ?? Boolean(current.visible)) ? 1 : 0, new Date().toISOString(), (parsed.data.announcement ?? Boolean(current.announcement)) ? 1 : 0, parsed.data.id).run();
   return Response.json({ ok: true });
 }
 
