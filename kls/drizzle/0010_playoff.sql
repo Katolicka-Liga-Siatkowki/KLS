@@ -1,0 +1,2 @@
+INSERT OR IGNORE INTO site_sections (section_key,kind,nav_label,eyebrow,title,body,layout,sort_order,visible,created_at,updated_at) VALUES ('play-off','system','Play-off','FAZA PUCHAROWA','Play-off','Droga do mistrzostwa Katolickiej Ligi Siatkówki.','standard',35,0,datetime('now'),datetime('now'));
+INSERT OR IGNORE INTO settings (key,value) VALUES ('playoff_settings','{"url":"https://docs.google.com/spreadsheets/d/1soFqX6lBXWyiGXYpU2CYZxjeMMCpHJ__wR4PWy2JEN0/edit?gid=2103080120#gid=2103080120","placement":false,"seeds":[]}');

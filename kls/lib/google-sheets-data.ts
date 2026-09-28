@@ -7,7 +7,7 @@ const SHEETS = { 1: { get id() { return sheetId(); }, title: "Tabela KLS" } } as
 
 const GIDS = { matches: "1813126838", table: "1968027780", teams: "618067632", players: "1167048519" };
 
-function csvRows(input: string): string[][] {
+export function csvRows(input: string): string[][] {
   const rows: string[][] = [];
   let row: string[] = [], cell = "", quoted = false;
   for (let index = 0; index < input.length; index += 1) {

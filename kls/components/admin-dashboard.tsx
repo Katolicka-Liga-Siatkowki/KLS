@@ -1,5 +1,6 @@
 "use client";
 
+import { PlayoffSettings } from "./playoff-settings";
 import { Documents } from "./documents";
 import { SheetSettings } from "./sheet-settings";
 import { FormEvent, useMemo, useState } from "react";
@@ -175,10 +176,12 @@ export function AdminDashboard({ snapshot, user, signOutPath }: Props) {
             <TabsTrigger value="website"><PanelsTopLeft /> Strona</TabsTrigger>
             <TabsTrigger value="links"><Link2 /> Linki</TabsTrigger>
             <TabsTrigger value="matches"><FileSpreadsheet /> Arkusze</TabsTrigger>
+            <TabsTrigger value="playoff"><Trophy /> Play-off</TabsTrigger>
             <TabsTrigger value="documents"><FileSpreadsheet /> Dokumenty</TabsTrigger>
             <TabsTrigger value="admins"><ShieldCheck /> Dostęp</TabsTrigger>
           </TabsList>
 
+          <TabsContent value="playoff"><PlayoffSettings ranking={(snapshot.standings["1"] ?? []).map(row=>row.name)} /></TabsContent>
           <TabsContent value="documents"><Documents admin /></TabsContent>
           <TabsContent value="dashboard">
             {registration && <section className="admin-card compact-form">

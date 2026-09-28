@@ -1,5 +1,7 @@
 "use client";
 
+import { Playoff } from "./playoff";
+import type { PlayoffData } from "@/lib/playoff";
 import { MatchCalendar } from "./match-calendar";
 import { nextRound } from "@/lib/match-calendar";
 import { Documents } from "./documents";
@@ -103,7 +105,7 @@ function sectionRoute(key: string) {
   return standardRoutes[key] ?? `/${key}`;
 }
 
-export function LeagueSite({ snapshot, page = "start", teamId, galleryAlbumId }: { snapshot: LeagueSnapshot; page?: string; teamId?: number; galleryAlbumId?: number }) {
+export function LeagueSite({ snapshot, page = "start", teamId, galleryAlbumId, playoff }: { playoff?: PlayoffData; snapshot: LeagueSnapshot; page?: string; teamId?: number; galleryAlbumId?: number }) {
   const league = 1;
   const [menuOpen, setMenuOpen] = useState(false);
   const standings = snapshot.standings[String(league)] ?? [];
@@ -140,6 +142,7 @@ export function LeagueSite({ snapshot, page = "start", teamId, galleryAlbumId }:
             <span><b>Katolicka</b><small>Liga Siatkówki</small></span>
           </a>
           <div className="header-actions">
+            <a className="panel-login-button" href="https://panel-kls.katolickaligasiatkowki.workers.dev/logowanie">Zaloguj do panelu</a>
             <button className="menu-button" onClick={() => setMenuOpen((open) => !open)} aria-expanded={menuOpen} aria-label="Otwórz menu">{menuOpen ? <X /> : <Menu />}</button>
           </div>
         </div>
@@ -209,6 +212,8 @@ export function LeagueSite({ snapshot, page = "start", teamId, galleryAlbumId }:
           </div>
 
         </section>}
+
+        {page === "play-off" && playoff && <section className="content-section playoff-page"><div className="section-title"><div><span className="eyebrow">FAZA PUCHAROWA · {snapshot.season}</span><h2>Play-off</h2></div></div><Playoff data={playoff} /></section>}
 
         {page === "druzyny" && <section className="content-section" id="druzyny" data-section-key="druzyny" {...sectionProps("druzyny")}>
           <div className="section-title"><div><span className="eyebrow">{section("druzyny")?.eyebrow}</span><h2>{section("druzyny")?.title}</h2></div><p>{section("druzyny")?.body}</p></div>
