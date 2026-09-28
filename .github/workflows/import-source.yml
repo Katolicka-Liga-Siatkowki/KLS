@@ -10,12 +10,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Extract website source
+      - name: Apply tested KLS playoff update
         run: |
-          test ! -d kls
-          tar -xzf kls-source.tar.gz
+          test -d kls
+          echo "086fa76f0f06d128ba7101015dc902803b99d222bb3b229afe8bdb8bcb1afee5  kls-playoff-update.tar.gz" | sha256sum --check
+          tar -xzf kls-playoff-update.tar.gz
           git config user.name "KLS source import"
           git config user.email "katolickaligasiatkowki@gmail.com"
-          git add kls README.md
-          git commit -m "Extract KLS website source for Cloudflare"
+          git add kls
+          git diff --cached --quiet || git commit -m "Add KLS playoffs with two-leg ties and golden sets"
           git push
