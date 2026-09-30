@@ -1,5 +1,6 @@
 "use client";
 
+import { LiveMatchScore } from "./live-match-score";
 import { Playoff } from "./playoff";
 import type { PlayoffData } from "@/lib/playoff";
 import { MatchCalendar } from "./match-calendar";
@@ -47,10 +48,12 @@ function MatchCard({ match }: { match: LeagueMatch }) {
       <div className="match-meta"><CalendarDays size={16} />{dateLabel}</div>
       <div className="match-line">
         <strong>{match.homeTeam}</strong>
+        <LiveMatchScore matchId={match.id} fallback={
         <div className={finished ? "score finished" : "score"}>
           {finished ? `${match.homeSets} : ${match.awaySets}` : "–"}
           <small>{finished ? (match.setScores.length ? match.setScores.join(" · ") : match.smallPoints ? `małe punkty ${match.smallPoints}` : "WYNIK KOŃCOWY") : "NADCHODZĄCY"}</small>
         </div>
+        } />
         <strong>{match.awayTeam}</strong>
       </div>
       {match.round && <small>{match.round}. kolejka</small>}
