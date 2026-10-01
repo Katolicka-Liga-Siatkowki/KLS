@@ -10,13 +10,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Apply tested KLS playoff update
+      - name: Apply tested KLS logo upload fix
         run: |
           test -d kls
-          echo "086fa76f0f06d128ba7101015dc902803b99d222bb3b229afe8bdb8bcb1afee5  kls-playoff-update.tar.gz" | sha256sum --check
-          tar -xzf kls-playoff-update.tar.gz
+          echo "0d11e6677829cf2478d01e1bb783339ee2c6b1de1a52a89f229796eba4eb566f  kls-logo-update.tar.gz" | sha256sum --check
+          tar -xzf kls-logo-update.tar.gz
           git config user.name "KLS source import"
           git config user.email "katolickaligasiatkowki@gmail.com"
           git add kls
-          git diff --cached --quiet || git commit -m "Add KLS playoffs with two-leg ties and golden sets"
+          git diff --cached --quiet || git commit -m "Fix team logo uploads using D1 and resize large PNG files"
           git push
