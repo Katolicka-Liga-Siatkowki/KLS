@@ -1,5 +1,6 @@
 "use client";
 
+import { prepareTeamLogo } from "@/lib/prepare-team-logo";
 import { PlayoffSettings } from "./playoff-settings";
 import { Documents } from "./documents";
 import { SheetSettings } from "./sheet-settings";
@@ -32,7 +33,7 @@ async function logoApi(method: "POST" | "DELETE", team: Team, logo?: File) {
   const body = new FormData();
   body.set("league", String(team.league));
   body.set("teamName", team.name);
-  if (logo) body.set("logo", logo);
+  if (logo) body.set("logo", await prepareTeamLogo(logo));
   const response = await fetch("/api/admin/team-logo", { method, body });
   const result = await response.json().catch(() => ({})) as { error?: string };
   if (!response.ok) throw new Error(result.error || "Nie udało się zapisać logo.");
@@ -236,7 +237,7 @@ export function AdminDashboard({ snapshot, user, signOutPath }: Props) {
                     setLogoFile(file);
                     setLogoPreview(file ? URL.createObjectURL(file) : "");
                   }} />
-                  <small>PNG, JPG lub WebP, maksymalnie 3 MB. Najlepiej plik kwadratowy.</small>
+                  <small>Okrągłe logo: PNG, JPG lub WebP do 20 MB. Duże pliki zmniejszymy automatycznie, zachowując proporcje i przezroczystość PNG. Logo wyświetlimy w kółku.</small>
                   <div className="form-actions">
                     <Button type="button" disabled={busy || !logoFile} onClick={() => logoFile && perform("Logo drużyny zostało zapisane.", () => logoApi("POST", teamEdit, logoFile))}><ImagePlus /> Zapisz logo</Button>
                     {teamEdit.logoUrl && <Button type="button" variant="outline" disabled={busy} onClick={() => perform("Logo drużyny zostało usunięte.", () => logoApi("DELETE", teamEdit))}><Trash2 /> Usuń logo</Button>}

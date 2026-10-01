@@ -1,4 +1,3 @@
-import { env } from "cloudflare:workers";
 import { z } from "zod";
 import { requireAdminApi } from "@/lib/admin-auth";
 import { ensureSeeded, getD1 } from "@/lib/league-data";
@@ -10,17 +9,27 @@ const teamSchema = z.object({
 });
 const allowedTypes = new Set(["image/png", "image/jpeg", "image/webp"]);
 
-function bucket() {
-  const value = (env as unknown as { BUCKET?: R2Bucket }).BUCKET;
-  if (!value) throw new Error("Magazyn logo jest chwilowo niedostępny.");
-  return value;
-}
-
 export async function POST(request: Request) {
   const auth = await requireAdminApi();
   if (auth.response) return auth.response;
+  try {
   await ensureSeeded();
-  const form = await request.formData();
+  const reader = request.body?.getReader();
+  if (!reader) return Response.json({ error: "Wybierz plik logo." }, { status: 400 });
+  const parts: Uint8Array[] = []; let size = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.length;
+    if (size > 3 * 1024 * 1024 + 65536) {
+      await reader.cancel();
+      return Response.json({ error: "Logo jest za duże. Odśwież panel, aby automatycznie zmniejszyć plik." }, { status: 413 });
+    }
+    parts.push(value);
+  }
+  const body = new Uint8Array(size); let offset = 0;
+  for (const part of parts) { body.set(part, offset); offset += part.length; }
+  const form = await new Response(body, { headers: { "Content-Type": request.headers.get("Content-Type") || "" } }).formData();
   const parsed = teamSchema.safeParse({ league: form.get("league"), teamName: form.get("teamName") });
   const logo = form.get("logo");
   if (!parsed.success || !(logo instanceof File)) return Response.json({ error: "Wybierz drużynę i plik logo." }, { status: 400 });
@@ -29,16 +38,27 @@ export async function POST(request: Request) {
 
   const teamKey = normalizeTeamKey(parsed.data.teamName);
   const objectKey = teamLogoObjectKey(parsed.data.league, parsed.data.teamName);
-  await bucket().put(objectKey, await logo.arrayBuffer(), {
-    httpMetadata: { contentType: logo.type },
-    customMetadata: { originalName: logo.name },
-  });
+  const bytes = new Uint8Array(await logo.arrayBuffer());
+  const signature = Array.from(bytes.subarray(0, 12));
+  const valid = logo.type === "image/png" ? signature.slice(0, 8).join(",") === "137,80,78,71,13,10,26,10"
+    : logo.type === "image/jpeg" ? signature[0] === 255 && signature[1] === 216 && signature[2] === 255
+    : String.fromCharCode(...signature.slice(0, 4)) === "RIFF" && String.fromCharCode(...signature.slice(8, 12)) === "WEBP";
+  if (!valid) return Response.json({ error: "Zawartość pliku nie jest obrazem PNG, JPG lub WebP." }, { status: 400 });
   const now = new Date().toISOString();
-  await getD1().prepare(`INSERT INTO team_logos (league, team_key, object_key, file_name, content_type, updated_at)
+  const db = getD1();
+  const statements = [db.prepare(`INSERT INTO team_logos (league, team_key, object_key, file_name, content_type, updated_at)
     VALUES (?, ?, ?, ?, ?, ?)
     ON CONFLICT (league, team_key) DO UPDATE SET object_key = excluded.object_key, file_name = excluded.file_name, content_type = excluded.content_type, updated_at = excluded.updated_at`)
-    .bind(parsed.data.league, teamKey, objectKey, logo.name, logo.type, now).run();
+    .bind(parsed.data.league, teamKey, objectKey, logo.name.slice(0, 180), logo.type, now),
+    db.prepare("DELETE FROM team_logo_chunks WHERE league=? AND team_key=?").bind(parsed.data.league, teamKey)];
+  for (let pos = 0, part = 0; pos < bytes.length; pos += 524288, part++)
+    statements.push(db.prepare("INSERT INTO team_logo_chunks(league,team_key,part,content) VALUES (?,?,?,?)")
+      .bind(parsed.data.league, teamKey, part, bytes.slice(pos, pos + 524288).buffer));
+  await db.batch(statements);
   return Response.json({ ok: true });
+  } catch {
+    return Response.json({ error: "Nie udało się zapisać logo. Dotychczasowe logo pozostaje bez zmian. Spróbuj ponownie." }, { status: 500 });
+  }
 }
 
 export async function DELETE(request: Request) {
@@ -49,9 +69,10 @@ export async function DELETE(request: Request) {
   const parsed = teamSchema.safeParse({ league: form.get("league"), teamName: form.get("teamName") });
   if (!parsed.success) return Response.json({ error: "Nieprawidłowa drużyna." }, { status: 400 });
   const teamKey = normalizeTeamKey(parsed.data.teamName);
-  const record = await getD1().prepare("SELECT object_key FROM team_logos WHERE league = ? AND team_key = ?")
-    .bind(parsed.data.league, teamKey).first<{ object_key: string }>();
-  if (record) await bucket().delete(record.object_key);
-  await getD1().prepare("DELETE FROM team_logos WHERE league = ? AND team_key = ?").bind(parsed.data.league, teamKey).run();
+  const db = getD1();
+  await db.batch([
+    db.prepare("DELETE FROM team_logo_chunks WHERE league=? AND team_key=?").bind(parsed.data.league, teamKey),
+    db.prepare("DELETE FROM team_logos WHERE league=? AND team_key=?").bind(parsed.data.league, teamKey),
+  ]);
   return Response.json({ ok: true });
 }
