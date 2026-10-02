@@ -125,8 +125,12 @@ function parseMatches(rows: string[][], league: number): LeagueMatch[] {
       status: finished ? "finished" as const : "scheduled" as const,
       homeSets: finished ? number(homeRaw) : 0,
       awaySets: finished ? number(awayRaw) : 0,
-      setScores: [],
-      smallPoints: row[8]?.trim() && row[10]?.trim() ? `${row[8].trim()}:${row[10].trim()}` : undefined,
+      setScores: [8, 11, 14, 17, 20].flatMap((column) => {
+        const homePoints = row[column]?.trim() ?? "";
+        const awayPoints = row[column + 2]?.trim() ?? "";
+        return /^\d+$/.test(homePoints) && /^\d+$/.test(awayPoints) && (Number(homePoints) > 0 || Number(awayPoints) > 0) ? [`${homePoints}:${awayPoints}`] : [];
+      }),
+      smallPoints: undefined,
       published: true,
     }];
   });
@@ -182,7 +186,7 @@ export async function loadGoogleSheetsLeague() {
   const results = await Promise.allSettled(([1] as const).map(async (league) => {
     const source = configured ? { id: configured.id, title: "Tabela KLS" } : SHEETS[league];
     const [tableRows, matchRows, teamRows, playerRows] = await Promise.all([
-      csv(source.id, gids.table), csv(source.id, gids.matches, "A4:N"), csv(source.id, gids.teams), csv(source.id, gids.players),
+      csv(source.id, gids.table), csv(source.id, gids.matches, "A4:W"), csv(source.id, gids.teams), csv(source.id, gids.players),
     ]);
     const matches = parseMatches(matchRows, league);
     const standings = addMatchForm(parseStandings(tableRows, league), matches);
@@ -206,4 +210,5 @@ export async function loadGoogleSheetsLeague() {
     }])),
   };
 }
+
 
