@@ -111,10 +111,25 @@ function sectionRoute(key: string) {
 export function LeagueSite({ snapshot, page = "start", teamId, galleryAlbumId, playoff }: { playoff?: PlayoffData; snapshot: LeagueSnapshot; page?: string; teamId?: number; galleryAlbumId?: number }) {
   const league = 1;
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showAllRounds, setShowAllRounds] = useState(false);
   const standings = snapshot.standings[String(league)] ?? [];
   const teams = snapshot.teams.filter((team) => team.league === league && team.active);
   const matches = snapshot.matches.filter((match) => match.league === league && match.published);
-  const upcoming = useMemo(() => matches.filter((match) => match.status === "scheduled").sort((a, b) => a.matchDate.localeCompare(b.matchDate)), [matches]);
+  const upcomingRounds = useMemo(() => {
+    const groups = new Map<number, LeagueMatch[]>();
+    for (const match of matches.filter((item) => item.status === "scheduled")) {
+      const round = match.round && match.round > 0 ? match.round : 0;
+      groups.set(round, [...(groups.get(round) ?? []), match]);
+    }
+    return [...groups].sort(([a], [b]) => (a || Infinity) - (b || Infinity)).map(([round, games]) => ({
+      round,
+      games: games.sort((a, b) => {
+        const dateA = a.matchDate.startsWith("9999-") ? "9999" : a.matchDate;
+        const dateB = b.matchDate.startsWith("9999-") ? "9999" : b.matchDate;
+        return dateA.localeCompare(dateB) || a.id - b.id;
+      }),
+    }));
+  }, [matches]);
   const nearest = nextRound(matches, snapshot.dataSource.updatedAt.slice(0,10));
   const finished = useMemo(() => matches.filter((match) => match.status === "finished").sort((a, b) => b.matchDate.localeCompare(a.matchDate)), [matches]);
   const sectionMap = new Map(snapshot.sections.map((section) => [section.sectionKey, section]));
@@ -210,7 +225,18 @@ export function LeagueSite({ snapshot, page = "start", teamId, galleryAlbumId, p
           <div className="section-title"><div><span className="eyebrow">{section("mecze")?.eyebrow}</span><h2>{section("mecze")?.title}</h2></div><p>{section("mecze")?.body}</p></div>
           <SectionImage src={section("mecze")?.imageUrl} title={section("mecze")?.title ?? "Mecze"} />
           <div className="matches-layout">
-            <div><h3>Najbliższe mecze</h3>{upcoming.length ? upcoming.map((match) => <MatchCard key={match.id} match={match} />) : <p className="empty-state">Brak zaplanowanych spotkań.</p>}</div>
+            <div>
+              <h3>Najbliższe kolejki</h3>
+              {upcomingRounds.length ? <>
+                <div id="upcoming-rounds">
+                  {(showAllRounds ? upcomingRounds : upcomingRounds.slice(0, 2)).map(({ round, games }) => <section key={round} aria-label={round ? `${round}. kolejka` : "Mecze bez numeru kolejki"} style={{ marginBottom: 28 }}>
+                    <h4 style={{ fontSize: "1.15rem", margin: "20px 0 12px" }}>{round ? `${round}. kolejka` : "Mecze bez numeru kolejki"}</h4>
+                    {games.map((match) => <MatchCard key={match.id} match={match} />)}
+                  </section>)}
+                </div>
+                {upcomingRounds.length > 2 && <button type="button" className="btn dark" aria-expanded={showAllRounds} aria-controls="upcoming-rounds" onClick={() => setShowAllRounds((value) => !value)}>{showAllRounds ? "Zwiń" : "Zobacz więcej"}</button>}
+              </> : <p className="empty-state">Brak zaplanowanych spotkań.</p>}
+            </div>
             {page === "mecze" && <div><h3>Ostatnie wyniki</h3>{finished.length ? finished.slice(0, 12).map((match) => <MatchCard key={match.id} match={match} />) : <p className="empty-state">Nie wpisano jeszcze wyników.</p>}</div>}
           </div>
 
@@ -313,3 +339,4 @@ export function LeagueSite({ snapshot, page = "start", teamId, galleryAlbumId, p
     </>
   );
 }
+
