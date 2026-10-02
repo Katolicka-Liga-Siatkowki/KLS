@@ -108,3 +108,17 @@ footer{background:linear-gradient(110deg,#f3c623,#dda500);color:var(--navy);padd
 
 /* Play-off */
 .playoff-page{width:100%;min-width:0}.playoff-rules{max-width:850px;line-height:1.7;color:#586577}.playoff-round{margin-top:38px}.playoff-round>h3{font-family:Georgia,serif;color:var(--navy);font-size:1.9rem;margin:0 0 18px}.playoff-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.playoff-tie{min-width:0;padding:22px;border:1px solid #dac45c;border-top:4px solid var(--gold);background:#fff}.playoff-tie h4{font-size:1.1rem;line-height:1.5;color:var(--navy);margin:12px 0 20px;overflow-wrap:anywhere}.playoff-game{padding:16px 0;border-top:1px solid #e5dfc7}.playoff-game p{margin:5px 0;font-size:.9rem;line-height:1.5;overflow-wrap:anywhere}.playoff-score{font-size:1.4rem!important;font-weight:900;color:var(--navy)}.playoff-score small{font-weight:500;font-size:.8rem}.playoff-total{font-weight:800;color:var(--navy)}.playoff-total small{display:block;margin-top:5px;font-weight:400}.playoff-note{font-size:.85rem;color:#586577;line-height:1.5}.playoff-winner{background:#e6f5ec;color:#17603a;padding:12px;line-height:1.5}.playoff-preview{margin-top:20px}.admin-form input[type=url]{width:100%;padding:10px;border:1px solid #bbc5d2;border-radius:6px}@media(max-width:700px){.playoff-grid{grid-template-columns:1fr}.playoff-tie{padding:18px}}
+
+/* Keep the full league name visible on narrow portrait screens. */
+@media (max-width: 480px) {
+  .header-brand-row { gap: 8px; padding-inline: 10px; }
+  .brand { gap: 7px; flex: 1 0 auto; }
+  .brand > img { width: 42px; height: 42px; flex-shrink: 0; }
+  .brand span { flex-shrink: 0; white-space: nowrap; }
+  .brand b { font-size: .78rem; }
+  .brand small { display: block; font-size: .5rem; letter-spacing: .04em; margin-top: 4px; }
+  .header-actions { gap: 6px; flex-shrink: 0; }
+  .panel-login-button { padding-inline: 7px; font-size: .56rem; letter-spacing: 0; }
+  .menu-button { width: 36px; height: 40px; flex-shrink: 0; }
+}
+
