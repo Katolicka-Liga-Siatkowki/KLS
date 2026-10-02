@@ -51,11 +51,14 @@ function MatchCard({ match }: { match: LeagueMatch }) {
         <LiveMatchScore matchId={match.id} fallback={
         <div className={finished ? "score finished" : "score"}>
           {finished ? `${match.homeSets} : ${match.awaySets}` : "–"}
-          <small>{finished ? (match.setScores.length ? match.setScores.join(" · ") : match.smallPoints ? `małe punkty ${match.smallPoints}` : "WYNIK KOŃCOWY") : "NADCHODZĄCY"}</small>
+          <small>{finished ? (match.smallPoints && !match.setScores.length ? `małe punkty ${match.smallPoints}` : "WYNIK KOŃCOWY") : "NADCHODZĄCY"}</small>
         </div>
         } />
         <strong>{match.awayTeam}</strong>
       </div>
+      {finished && match.setScores.length > 0 && <div aria-label="Wyniki setów" style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px", margin: "12px 0", fontSize: ".8rem" }}>
+        <span>{match.setScores.join(" | ")}</span>
+      </div>}
       {match.round && <small>{match.round}. kolejka</small>}
       {match.venue && <div className="match-venue"><MapPin size={15} />{match.venue}</div>}
       <MatchCalendar match={match} />
@@ -339,4 +342,5 @@ export function LeagueSite({ snapshot, page = "start", teamId, galleryAlbumId, p
     </>
   );
 }
+
 
