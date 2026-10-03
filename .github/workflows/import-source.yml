@@ -10,13 +10,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Apply tested KLS logo upload fix
+      - name: Apply tested roster visibility controls
         run: |
           test -d kls
-          echo "0d11e6677829cf2478d01e1bb783339ee2c6b1de1a52a89f229796eba4eb566f  kls-logo-update.tar.gz" | sha256sum --check
-          tar -xzf kls-logo-update.tar.gz
+          echo "4dcd0107ccb5aa3d17754ff59ccadcb392950f846a7a1763328e886a27476c21  kls-roster-update.tar.gz" | sha256sum --check
+          tar -xzf kls-roster-update.tar.gz
           git config user.name "KLS source import"
           git config user.email "katolickaligasiatkowki@gmail.com"
           git add kls
-          git diff --cached --quiet || git commit -m "Fix team logo uploads using D1 and resize large PNG files"
+          git diff --cached --quiet || git commit -m "Add global and per-team roster visibility controls"
           git push
