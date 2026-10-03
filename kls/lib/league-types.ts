@@ -21,6 +21,7 @@ export type Team = {
   coverPositionX?: number;
   coverPositionY?: number;
   players: Player[];
+  rosterHidden?: boolean;
 };
 
 export type LeagueMatch = {
@@ -126,6 +127,7 @@ export type LeagueDataSource = {
 };
 
 export type LeagueSnapshot = {
+  allRostersHidden?: boolean;
   season: string;
   teams: Team[];
   matches: LeagueMatch[];
@@ -138,3 +140,4 @@ export type LeagueSnapshot = {
   newsPosts: NewsPost[];
   dataSource: LeagueDataSource;
 };
+

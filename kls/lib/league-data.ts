@@ -191,7 +191,7 @@ function calculateStandings(league: number, teams: Team[], matches: LeagueMatch[
     .sort((a, b) => b.points - a.points || b.wins - a.wins || ratio(b.setsWon, b.setsLost) - ratio(a.setsWon, a.setsLost) || ratio(b.pointsWon, b.pointsLost) - ratio(a.pointsWon, a.pointsLost) || a.name.localeCompare(b.name, "pl"));
 }
 
-export async function getLeagueSnapshot(options: { useGoogleSheets?: boolean; includeOfficialMatches?: boolean } = {}): Promise<LeagueSnapshot> {
+export async function getLeagueSnapshot(options: { useGoogleSheets?: boolean; includeOfficialMatches?: boolean; includeHiddenRosters?: boolean } = {}): Promise<LeagueSnapshot> {
   await ensureSeeded();
   const db = database();
   const [teamRows, playerRows, matchRows, adminRows, seasonRow, sectionRows, linkRows, teamLogoRows, playerPhotoRows, mediaRows, albumRows, galleryPhotoRows, newsRows] = await Promise.all([
@@ -317,11 +317,18 @@ export async function getLeagueSnapshot(options: { useGoogleSheets?: boolean; in
       officialMatches = [];
     }
   }
-  liveTeams = withLogos(liveTeams);
+  const rosterRows = await db.prepare("SELECT key, value FROM settings WHERE key LIKE 'roster_hidden:%'").all<{ key: string; value: string }>();
+  const hiddenRosterKeys = new Set((rosterRows.results ?? []).filter((row) => row.value === "true").map((row) => row.key));
+  const allRostersHidden = hiddenRosterKeys.has("roster_hidden:all");
+  liveTeams = withLogos(liveTeams).map((team) => {
+    const rosterHidden = hiddenRosterKeys.has(`roster_hidden:${team.league}:${normalizeTeamKey(team.name)}`);
+    return { ...team, rosterHidden, players: !options.includeHiddenRosters && (allRostersHidden || rosterHidden) ? [] : team.players };
+  });
   liveMatches = withMatchImages(liveMatches);
   officialMatches = officialMatches ? withMatchImages(officialMatches) : undefined;
 
   return {
+    allRostersHidden,
     season: seasonRow?.value ?? "2026/2027",
     teams: liveTeams,
     matches: liveMatches,
@@ -339,3 +346,4 @@ export async function getLeagueSnapshot(options: { useGoogleSheets?: boolean; in
 export function getD1() {
   return database();
 }
+

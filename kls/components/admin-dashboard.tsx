@@ -266,11 +266,15 @@ export function AdminDashboard({ snapshot, user, signOutPath }: Props) {
               </form>
               <section className="admin-card">
                 <h2>Drużyny</h2>
+                <p>Widoczność zawodników na publicznych profilach drużyn. Dane w panelu pozostają zachowane.</p>
+                <Button type="button" disabled={busy} variant="outline" style={{ marginBottom: 16 }} onClick={() => perform(snapshot.allRostersHidden ? "Przywrócono indywidualne ustawienia składów." : "Ukryto zawodników wszystkich drużyn.", () => api("/api/admin/settings", "PATCH", { roster: { all: true, hidden: !snapshot.allRostersHidden } }))}>{snapshot.allRostersHidden ? "Pokaż składy według ustawień drużyn" : "Ukryj zawodników wszystkich drużyn"}</Button>
+                {snapshot.allRostersHidden && <p>Wszystkie składy są ukryte. Po wyłączeniu tej opcji wrócą ustawienia poszczególnych drużyn.</p>}
                 <div className="admin-list">{activeTeams.map((team) =>
-                  <article key={team.id} className={!team.active ? "is-muted" : ""}>
-                    <div><strong>{team.name}</strong><span>KLS · {team.location || "bez lokalizacji"} · {team.players.filter((p) => p.active).length} zawodników</span></div>
+                  <article key={team.id} className={!team.active ? "is-muted" : ""} style={{ flexWrap: "wrap" }}>
+                    <div><strong>{team.name}</strong><span>{snapshot.allRostersHidden || team.rosterHidden ? "Zawodnicy ukryci na stronie" : "Zawodnicy widoczni na stronie"}</span><span>KLS · {team.location || "bez lokalizacji"} · {team.players.filter((p) => p.active).length} zawodników</span></div>
                     <div>
                       <Button size="sm" variant="outline" onClick={() => editTeam(team)}>Edytuj</Button>
+                      <Button size="sm" variant="outline" disabled={busy || snapshot.allRostersHidden} aria-label={`${team.rosterHidden ? "Pokaż" : "Ukryj"} zawodników: ${team.name}`} onClick={() => perform(team.rosterHidden ? "Zawodnicy drużyny są widoczni." : "Zawodnicy drużyny zostali ukryci.", () => api("/api/admin/settings", "PATCH", { roster: { teamName: team.name, league: team.league, hidden: !team.rosterHidden } }))}>{team.rosterHidden ? "Pokaż zawodników" : "Ukryj zawodników"}</Button>
                       {team.logoUrl && <Button size="sm" variant="ghost" disabled={busy} onClick={() => perform("Logo drużyny zostało usunięte.", () => logoApi("DELETE", team))}><Trash2 /> Usuń logo</Button>}
                       <Button size="sm" variant="ghost" onClick={() => perform(team.active ? "Drużyna została ukryta." : "Drużyna została przywrócona.", () => api("/api/admin/teams", "PATCH", { id: team.id, active: !team.active }))}>{team.active ? "Ukryj" : "Przywróć"}</Button>
                     </div>
@@ -556,4 +560,5 @@ export function AdminDashboard({ snapshot, user, signOutPath }: Props) {
     </main>
   );
 }
+
 

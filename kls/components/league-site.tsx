@@ -275,13 +275,13 @@ export function LeagueSite({ snapshot, page = "start", teamId, galleryAlbumId, p
             <article><span>Punkty</span><strong>{teamStanding?.points ?? 0}</strong></article>
             <article><span>Forma</span><FormDots form={teamStanding?.form ?? []} /></article>
           </div>
-          <div className="content-section team-roster-section">
+          {!snapshot.allRostersHidden && !teamPage.rosterHidden && <div className="content-section team-roster-section">
             <div className="section-title"><div><span className="eyebrow">KADRA DRUŻYNY</span><h2>Zawodnicy</h2></div><p>Aktualny skład zgłoszony do rozgrywek Katolickiej Ligi Siatkówki.</p></div>
             <div className="player-grid">{teamPage.players.filter((player) => player.active).map((player, index) => <article key={player.id}>
               <div><span>{player.number ?? index + 1}</span><h3>{player.name}</h3><p>{player.role}</p></div>
             </article>)}</div>
             {!teamPage.players.some((player) => player.active) && <p className="empty-state">Skład drużyny nie został jeszcze opublikowany.</p>}
-          </div>
+          </div>}
         </section>}
 
         {page === "galeria" && <section className="content-section gallery-page" id="galeria">
@@ -342,5 +342,6 @@ export function LeagueSite({ snapshot, page = "start", teamId, galleryAlbumId, p
     </>
   );
 }
+
 
 

@@ -14,6 +14,7 @@ export default async function AdminPage() {
   } catch (error) {
     console.error("Google Sheets synchronization unavailable in admin", error);
   }
-  const snapshot = await getLeagueSnapshot({ useGoogleSheets: false, includeOfficialMatches: true });
+  const snapshot = await getLeagueSnapshot({ useGoogleSheets: false, includeOfficialMatches: true, includeHiddenRosters: true });
   return <AdminDashboard snapshot={snapshot} user={{ email: user.email, displayName: user.displayName }} signOutPath="/api/admin/logout" />;
 }
+
