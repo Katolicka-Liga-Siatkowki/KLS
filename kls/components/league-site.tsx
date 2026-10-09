@@ -26,7 +26,7 @@ function FormDots({ form }: { form: ("W" | "P")[] }) {
     <span className="form-dots">
       {form.map((result, index) => {
         const label = result === "W" ? "Wygrana" : "Porażka";
-        return <i key={index} className={result === "W" ? "win" : "loss"} aria-label={label} title={label} />;
+        return <i key={index} className={result === "W" ? "win" : "loss"} aria-label={label} title={label} style={{ width: 25, height: 25, flexShrink: 0, borderRadius: 6, background: result === "W" ? "#00a844" : "#df001e", color: "#fff", fontSize: 13, fontWeight: 650, lineHeight: 1 }}>{result === "W" ? "Z" : "P"}</i>;
       })}
     </span>
   );
@@ -342,6 +342,7 @@ export function LeagueSite({ snapshot, page = "start", teamId, galleryAlbumId, p
     </>
   );
 }
+
 
 
 
