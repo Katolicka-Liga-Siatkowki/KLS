@@ -21,12 +21,13 @@ function TeamMark({ team, className }: { team: Pick<Team, "name" | "logoUrl">; c
 }
 
 function FormDots({ form }: { form: ("W" | "P")[] }) {
-  if (!form.length) return <span className="form-empty">brak meczów</span>;
+  const recent: ("W" | "P" | null)[] = form.slice(-5);
+  while (recent.length < 5) recent.push(null);
   return (
     <span className="form-dots">
-      {form.map((result, index) => {
-        const label = result === "W" ? "Wygrana" : "Porażka";
-        return <i key={index} className={result === "W" ? "win" : "loss"} aria-label={label} title={label} style={{ width: 25, height: 25, flexShrink: 0, borderRadius: 6, background: result === "W" ? "#00a844" : "#df001e", color: "#fff", fontSize: 13, fontWeight: 650, lineHeight: 1 }}>{result === "W" ? "Z" : "P"}</i>;
+      {recent.map((result, index) => {
+        const label = result === "W" ? "Wygrana" : result === "P" ? "Porażka" : "Brak wyniku";
+        return <i key={index} className={result === "W" ? "win" : result === "P" ? "loss" : "unknown"} aria-label={label} title={label} style={{ width: 25, height: 25, flexShrink: 0, borderRadius: 6, background: result === "W" ? "#00a844" : result === "P" ? "#df001e" : "#596568", color: "#fff", fontSize: 13, fontWeight: 650, lineHeight: 1 }}>{result === "W" ? "Z" : result === "P" ? "P" : "?"}</i>;
       })}
     </span>
   );
