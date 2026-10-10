@@ -276,6 +276,15 @@ export function LeagueSite({ snapshot, page = "start", teamId, galleryAlbumId, p
             <article><span>Punkty</span><strong>{teamStanding?.points ?? 0}</strong></article>
             <article><span>Forma</span><FormDots form={teamStanding?.form ?? []} /></article>
           </div>
+          <div className="content-section team-results-section">
+            <div className="section-title"><div><span className="eyebrow">WYNIKI DRUŻYNY</span><h2>Rozegrane mecze</h2></div></div>
+            {finished.filter((match) => match.homeTeamId === teamPage.id || match.awayTeamId === teamPage.id || match.homeTeam === teamPage.name || match.awayTeam === teamPage.name).length ? (
+              <div className="team-results-list">
+                {finished.filter((match) => match.homeTeamId === teamPage.id || match.awayTeamId === teamPage.id || match.homeTeam === teamPage.name || match.awayTeam === teamPage.name).map((match) => <MatchCard key={match.id} match={match} />)}
+              </div>
+            ) : <p className="empty-state">Ta drużyna nie rozegrała jeszcze żadnego meczu.</p>}
+          </div>
+
           {!snapshot.allRostersHidden && !teamPage.rosterHidden && <div className="content-section team-roster-section">
             <div className="section-title"><div><span className="eyebrow">KADRA DRUŻYNY</span><h2>Zawodnicy</h2></div><p>Aktualny skład zgłoszony do rozgrywek Katolickiej Ligi Siatkówki.</p></div>
             <div className="player-grid">{teamPage.players.filter((player) => player.active).map((player, index) => <article key={player.id}>
@@ -343,6 +352,7 @@ export function LeagueSite({ snapshot, page = "start", teamId, galleryAlbumId, p
     </>
   );
 }
+
 
 
 
