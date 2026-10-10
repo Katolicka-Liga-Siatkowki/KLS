@@ -211,7 +211,7 @@ export function LeagueSite({ snapshot, page = "start", teamId, galleryAlbumId, p
         </section>}
 
         {(page === "start" || page === "tabela") && <section className="content-section" id="tabela" data-section-key="tabela" {...sectionProps("tabela")}>
-          <div className="section-title"><div><span className="eyebrow">{section("tabela")?.eyebrow}</span><h2>{section("tabela")?.title}</h2></div><p>{section("tabela")?.body}</p></div>
+          <div className="section-title"><div><span className="eyebrow">{section("tabela")?.eyebrow}</span><h2>{section("tabela")?.title}</h2></div></div>
           <SectionImage src={section("tabela")?.imageUrl} title={section("tabela")?.title ?? "Tabela"} />
           <p className="table-scroll-note">Przesuń tabelę w bok, aby zobaczyć wszystkie statystyki i formę drużyn.</p>
           <div className="table-wrap" role="region" aria-label="Tabela ligowa — wszystkie statystyki" tabIndex={0}>
@@ -226,7 +226,7 @@ export function LeagueSite({ snapshot, page = "start", teamId, galleryAlbumId, p
         </section>}
 
         {page === "mecze" && <section className="content-section alternate" id="mecze" data-section-key="mecze" {...sectionProps("mecze")}>
-          <div className="section-title"><div><span className="eyebrow">{section("mecze")?.eyebrow}</span><h2>{section("mecze")?.title}</h2></div><p>{section("mecze")?.body}</p></div>
+          <div className="section-title"><div><span className="eyebrow">{section("mecze")?.eyebrow}</span><h2>{section("mecze")?.title}</h2></div><p>Najbliższe spotkania i ostatnie wyniki.</p></div>
           <SectionImage src={section("mecze")?.imageUrl} title={section("mecze")?.title ?? "Mecze"} />
           <div className="matches-layout">
             <div>
@@ -343,6 +343,7 @@ export function LeagueSite({ snapshot, page = "start", teamId, galleryAlbumId, p
     </>
   );
 }
+
 
 
 
