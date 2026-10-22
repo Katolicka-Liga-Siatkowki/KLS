@@ -1,0 +1,25 @@
+name: Check tournament app
+on:
+  pull_request:
+    paths: ['turniej/**', '.github/workflows/check-turniej.yml']
+  push:
+    branches: [main]
+    paths: ['turniej/**', '.github/workflows/check-turniej.yml']
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: turniej
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: turniej/package-lock.json
+      - run: npm ci
+      - run: npm run check
+      - run: npm run build

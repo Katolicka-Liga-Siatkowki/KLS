@@ -1,0 +1,12 @@
+{
+ "$schema":"./node_modules/wrangler/config-schema.json",
+ "name":"kls-turniej",
+ "account_id":"e9f2fa314d48a4997dc0a038cbcc8226",
+ "main":"vinext/server/app-router-entry",
+ "compatibility_date":"2026-05-15",
+ "compatibility_flags":["nodejs_compat"],
+ "workers_dev":true,
+ "keep_vars":true,
+ "d1_databases":[{"binding":"DB","database_name":"kls-turniej-db","migrations_dir":"drizzle"}],
+ "vars":{"INITIAL_ADMIN_EMAIL":"katolickaligasiatkowki@gmail.com"}
+}

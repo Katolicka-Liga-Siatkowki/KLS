@@ -13,3 +13,7 @@ Deploy: `npx wrangler d1 migrations apply DB --remote && npx wrangler deploy`
 Root directory: `kls`
 
 Konto i baza KLS są wskazane w wrangler.jsonc. Ustaw sekret ADMIN_PASSWORD przed korzystaniem z panelu zarządu. Wysyłanie formularza kontaktowego wymaga RESEND_API_KEY. KLS_SHEET_ID zostanie ustawiony po przygotowaniu arkusza; identyfikatory zakładek wymagają dopasowania do jego struktury.
+
+## Turniej siatkówki
+
+Osobna aplikacja turniejowa znajduje się w [`turniej/`](turniej/README.md). Wdrażaj ją jako nowy Worker `kls-turniej` z root directory `turniej`, osobną bazą D1 i sekretami logowania. Istniejący projekt ligi `kls` korzysta nadal z katalogu `kls/`.
