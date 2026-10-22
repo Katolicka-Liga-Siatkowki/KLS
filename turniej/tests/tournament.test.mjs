@@ -161,3 +161,12 @@ test('MVP rankings isolate regular and every knockout stage including third plac
  s.matches=s.matches.filter(m=>m.stage==='Eliminacje');assert.deepEqual(mvpRanking(s,'knockout'),[]);assert.equal(mvpRanking(s,'regular').length,2);
  s.matches=[{...base,status:'live',stage:'Finał',mvp:['B1','A1','A:A1']}];assert.deepEqual(mvpRanking(s,'knockout'),[]);
 });
+
+test('only organizer can upload or remove a logo, including during play',()=>{
+ const s=setup(2),teamId=s.teams[0].id;const logo='data:image/png;base64,iVBORw0KGgo=';
+ mutate(s,{type:'start',id:1,court:1},true);const before=structuredClone(s.matches);
+ assert.throws(()=>mutate(s,{type:'logo',teamId,logo},false));
+ for(const bad of ['https://example.com/logo.png','data:image/svg+xml;base64,PHN2Zz4=','data:image/png;base64,aGVsbG8=','x'.repeat(140001)])assert.throws(()=>mutate(s,{type:'logo',teamId,logo:bad},true));
+ mutate(s,{type:'logo',teamId,logo},true);assert.equal(s.teams[0].logo,logo);assert.deepEqual(s.matches,before);
+ mutate(s,{type:'logo',teamId,logo:''},true);assert.equal(s.teams[0].logo,undefined);
+});
