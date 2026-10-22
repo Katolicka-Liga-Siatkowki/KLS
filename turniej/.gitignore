@@ -46,3 +46,6 @@ wrangler.local.json
 
 .dev.vars*
 *.tsbuildinfo
+
+/deploy.log
+/deployment-result.json

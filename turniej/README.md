@@ -2,6 +2,20 @@
 
 Osobna aplikacja turniejowa, Worker **kls-turniej** i baza **kls-turniej-db**. Katalog `kls/` i istniejąca strona ligi nie są zmieniane. Nowa baza jest pusta: migracje zawierają tylko schemat; żadne drużyny, wyniki ani MVP testowe nie są importowane z prywatnego Sites.
 
+## Automatyczne wdrożenie przez GitHub Actions
+
+Workflow `.github/workflows/deploy-turniej.yml` publikuje nowy Worker po zmianach w katalogu `turniej/` na gałęzi `main`. Można też wybrać **Actions → Deploy tournament to Cloudflare → Run workflow**.
+
+W **Settings → Secrets and variables → Actions** skonfiguruj sekrety:
+
+- `CLOUDFLARE_API_TOKEN` — token konta KLS z uprawnieniami Workers Scripts Edit i D1 Edit.
+- `ADMIN_PASSWORD` — prywatne hasło organizatora, minimum 12 znaków.
+- `REFEREE_PASSWORD` — osobne hasło sędziów, minimum 12 znaków; opcjonalne do czasu zaproszenia sędziów.
+
+Token nie jest wypisywany ani zapisywany w repozytorium. Workflow sprawdza kod, tworzy osobną bazę, stosuje migracje i przed publikacją sprawdza, że w bazie nie ma drużyn oznaczonych jako testowe. Następnie publikuje aplikację, ustawia dostępne hasła jako sekrety Cloudflare i sprawdza publiczny odczyt oraz blokadę anonimowej edycji. Publiczny adres jest zapisywany w podsumowaniu uruchomienia i artefakcie `tournament-public-url`.
+
+Jeśli na pierwszym wdrożeniu nie ma `ADMIN_PASSWORD`, strona jest dostępna do odczytu, a logowanie jest zablokowane. Dodaj sekret i uruchom workflow ponownie. Brak opcjonalnego sekretu w GitHubie nie kasuje już ustawionego sekretu Cloudflare.
+
 ## Pierwsze wdrożenie przez GitHub w Cloudflare
 
 W **Workers & Pages → Create application → Import a repository** wybierz repozytorium `Katolicka-Liga-Siatkowki/KLS`, gałąź `main` i nowy projekt Workers o nazwie **kls-turniej**. Ustaw:

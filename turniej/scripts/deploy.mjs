@@ -14,5 +14,7 @@ if(!db){run([cli,'d1','create','kls-turniej-db','--config','wrangler.json','--up
 if(!db?.uuid)throw Error('Nie udało się uzyskać identyfikatora bazy turnieju.');
 config.d1_databases[0].database_id=db.uuid;await writeFile(configPath,JSON.stringify(config,null,2)+'\n');
 run([cli,'d1','migrations','apply','DB','--remote','--config','wrangler.json']);
+const inspection=JSON.parse(run([cli,'d1','execute','DB','--remote','--json','--config','wrangler.json','--command',"SELECT COUNT(*) AS temporary_count FROM tournament, json_each(tournament.state, '$.teams') AS entry WHERE json_extract(entry.value, '$.temporary') = 1"],{capture:true}));
+if(!Array.isArray(inspection)||inspection.length!==1||inspection[0].results?.[0]?.temporary_count!==0)throw Error('Baza zawiera dane testowe lub nie udało się sprawdzić jej zawartości. Przerwano publikację.');
 run(['node_modules/vinext/dist/cli.js','build']);
 run([cli,'deploy','--config','dist/server/wrangler.json']);

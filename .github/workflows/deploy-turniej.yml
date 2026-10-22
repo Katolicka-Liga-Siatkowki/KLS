@@ -1,0 +1,59 @@
+name: Deploy tournament to Cloudflare
+on:
+  push:
+    branches: [main]
+    paths: ['turniej/**', '.github/workflows/deploy-turniej.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: kls-turniej-production
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: turniej
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: e9f2fa314d48a4997dc0a038cbcc8226
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+      REFEREE_PASSWORD: ${{ secrets.REFEREE_PASSWORD }}
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: turniej/package-lock.json
+      - name: Check deployment credential
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo '::error::Brak sekretu CLOUDFLARE_API_TOKEN w ustawieniach GitHub Actions.'
+            exit 1
+          fi
+      - run: npm ci
+      - run: npm run check
+      - name: Provision database and deploy tournament
+        run: npm run deploy | tee deploy.log
+      - name: Configure login secrets
+        run: |
+          if [ -n "$ADMIN_PASSWORD" ]; then
+            printf '%s' "$ADMIN_PASSWORD" | node node_modules/wrangler/bin/wrangler.js secret put ADMIN_PASSWORD --config wrangler.json
+          else
+            echo '::notice::Publiczny podgląd zostanie wdrożony. Dodaj sekret ADMIN_PASSWORD i uruchom workflow ponownie, aby włączyć logowanie organizatora.'
+          fi
+          if [ -n "$REFEREE_PASSWORD" ]; then
+            printf '%s' "$REFEREE_PASSWORD" | node node_modules/wrangler/bin/wrangler.js secret put REFEREE_PASSWORD --config wrangler.json
+          fi
+      - name: Verify public deployment
+        run: node scripts/verify-deployment.mjs
+      - name: Save public deployment result
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tournament-public-url
+          path: turniej/deployment-result.json
