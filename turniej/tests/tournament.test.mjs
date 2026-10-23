@@ -170,3 +170,13 @@ test('only organizer can upload or remove a logo, including during play',()=>{
  mutate(s,{type:'logo',teamId,logo},true);assert.equal(s.teams[0].logo,logo);assert.deepEqual(s.matches,before);
  mutate(s,{type:'logo',teamId,logo:''},true);assert.equal(s.teams[0].logo,undefined);
 });
+
+test('assigning from the team list moves or clears a letter atomically and rejects occupied letters',()=>{
+ const s=setup(4),id=s.teams[0].id;
+ mutate(s,{type:'assign-team',teamId:id,letter:'P'},true);
+ assert.equal(s.slots.P,id);assert(!s.slots.A);assert(s.matches.every(m=>m.a!=='A'&&m.b!=='A'));
+ const before=structuredClone(s);assert.throws(()=>mutate(s,{type:'assign-team',teamId:id,letter:'B'},true));assert.deepEqual(s,before);
+ assert.throws(()=>mutate(s,{type:'assign-team',teamId:id,letter:'A'},false));assert.deepEqual(s,before);
+ mutate(s,{type:'assign-team',teamId:id,letter:''},true);assert(!Object.values(s.slots).includes(id));assert.equal(activeLetters(s).length,3);
+ mutate(s,{type:'start',id:s.matches[0].id,court:1},true);assert.throws(()=>mutate(s,{type:'assign-team',teamId:id,letter:'A'},true));
+});
