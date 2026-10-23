@@ -180,3 +180,17 @@ test('assigning from the team list moves or clears a letter atomically and rejec
  mutate(s,{type:'assign-team',teamId:id,letter:''},true);assert(!Object.values(s.slots).includes(id));assert.equal(activeLetters(s).length,3);
  mutate(s,{type:'start',id:s.matches[0].id,court:1},true);assert.throws(()=>mutate(s,{type:'assign-team',teamId:id,letter:'A'},true));
 });
+
+test('new tournament requires organizer confirmation, clears competition and preserves team database and rules',()=>{
+ const s=setup(8);s.refs=['ref@example.com'];s.title='Liga';s.teams[0].logo='data:image/png;base64,iVBORw0KGgo=';
+ finish(s,s.matches[0]);mutate(s,{type:'start',id:s.matches.find(m=>m.status==='waiting').id,court:1},true);
+ const before=structuredClone(s);
+ assert.throws(()=>mutate(s,{type:'new-tournament',confirmed:true},false));assert.deepEqual(s,before);
+ assert.throws(()=>mutate(s,{type:'new-tournament'},true));assert.deepEqual(s,before);
+ mutate(s,{type:'new-tournament',confirmed:true},true);
+ assert.deepEqual(s.matches,[]);assert.deepEqual(s.slots,{});assert.deepEqual(s.participants,[]);assert.deepEqual(mvpRanking(s),[]);assert.deepEqual(standings(s),[]);
+ for(const key of ['teams','refs','title','settings'])assert.deepEqual(s[key],before[key]);
+ prepareSchedule(s);assert.deepEqual(s.matches,[]);
+ for(let i=0;i<2;i++)mutate(s,{type:'assign-team',teamId:s.teams[i].id,letter:'AB'[i]},true);
+ assert.equal(s.matches.length,1);assert.equal(s.matches[0].status,'waiting');assert.deepEqual(s.matches[0].mvp,['','','']);
+});
