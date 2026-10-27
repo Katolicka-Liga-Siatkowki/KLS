@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import ts from 'typescript';
 import {readFileSync} from 'node:fs';
 const source=ts.transpileModule(readFileSync(new URL('../lib/tournament.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText;
-const {initial,mutate,eligible,standings,setWins,activeLetters,qualifierCount,prepareSchedule,mvpRanking}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+const {initial,mutate,eligible,standings,setWins,matchComplete,usesTwoSets,winner,activeLetters,qualifierCount,prepareSchedule,mvpRanking}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
 function setup(count=16){const s=initial();for(const l of 'ABCDEFGHIJKLMNOP'.slice(0,count)){mutate(s,{type:'team',name:l,players:l+'1\n'+l+'2'},true);mutate(s,{type:'assign',letter:l,teamId:s.teams.at(-1).id},true)}return s}
 function finish(s,m){mutate(s,{type:'start',id:m.id,court:1},true);for(let set=0;set<2;set++)for(let p=0;p<m.rules.target;p++)mutate(s,{type:'point',id:m.id,side:0},true);mutate(s,{type:'mvp',id:m.id,values:[s.teams.find(t=>t.id===s.slots[m.b]).players[0],s.teams.find(t=>t.id===s.slots[m.a]).players[0],m.a+':'+s.teams.find(t=>t.id===s.slots[m.a]).players[0]]},true);mutate(s,{type:'finish',id:m.id},true)}
 test('40 reference matches give every letter five matches',()=>{const s=setup();assert.equal(s.matches.length,40);assert.equal(s.matches[7].a,'O');for(const l of 'ABCDEFGHIJKLMNOP')assert.equal(s.matches.filter(m=>m.a===l||m.b===l).length,5)});
@@ -195,4 +195,44 @@ test('new tournament requires organizer confirmation, clears competition and tea
  for(let i=0;i<2;i++){mutate(s,{type:'team',name:before.teams[i].name,players:'Nowy zawodnik '+i},true);mutate(s,{type:'assign-team',teamId:s.teams[i].id,letter:'AB'[i]},true)}
  assert(s.teams.every(t=>!before.teams.some(old=>old.id===t.id)));assert.deepEqual(s.teams[0].players,['Nowy zawodnik 0']);assert.equal(s.teams[0].logo,undefined);
  assert.equal(s.matches.length,1);assert.equal(s.matches[0].status,'waiting');assert.deepEqual(s.matches[0].mvp,['','','']);
+});
+
+function playSet(s,m,side){for(let p=0;p<m.rules.target;p++)mutate(s,{type:'point',id:m.id,side},true)}
+function approve(s,m){mutate(s,{type:'mvp',id:m.id,values:[s.teams.find(t=>t.id===s.slots[m.b]).players[0],s.teams.find(t=>t.id===s.slots[m.a]).players[0],m.a+':'+s.teams.find(t=>t.id===s.slots[m.a]).players[0]]},true);mutate(s,{type:'finish',id:m.id},true)}
+function drawSettings(s,extra={}){mutate(s,{type:'settings',value:{...s.settings,eliminationTwoSets:true,draw11:2,win20:3,loss02:0,confirmed:true,...extra}},true)}
+test('two-set elimination supports 2:0, 1:1 and 0:2 with live draw points, approval and undo',()=>{
+ for(const sides of [[0,0],[0,1],[1,0],[1,1]]){
+  const s=setup(2);drawSettings(s);const m=s.matches[0];assert(usesTwoSets(s,m));mutate(s,{type:'start',id:m.id,court:1},true);
+  playSet(s,m,sides[0]);assert(!matchComplete(m));assert.throws(()=>mutate(s,{type:'finish',id:m.id},true));
+  playSet(s,m,sides[1]);assert(matchComplete(m));assert.equal(m.sets.length,2);assert.throws(()=>mutate(s,{type:'point',id:m.id,side:0},true));
+  const tied=sides[0]!==sides[1],live=standings(s,{live:true});assert(live.every(r=>r.awaitingApproval&&r.played===1));assert.equal(standings(s).reduce((n,r)=>n+r.played,0),0);
+  if(tied){assert.equal(winner(m),'');assert(live.every(r=>r.d===1&&r.w===0&&r.pts===2))}else{assert.equal(winner(m),sides[0]===0?m.a:m.b);assert.equal(live.reduce((n,r)=>n+r.pts,0),3)}
+  mutate(s,{type:'undo',id:m.id},true);assert(!matchComplete(m));assert.equal(m.sets.length,1);assert(standings(s,{live:true}).every(r=>r.played===0&&r.d===0&&r.pts===0));
+  mutate(s,{type:'point',id:m.id,side:sides[1]},true);assert.throws(()=>mutate(s,{type:'finish',id:m.id},true));approve(s,m);
+  assert.equal(m.status,'done');assert.equal(mvpRanking(s).reduce((n,r)=>n+r.total,0),3);
+  assert.equal(s.matches.filter(m=>m.stage==='Finał').length,1);
+  assert.deepEqual(standings(s).map(r=>[r.pts,r.d,r.w]),live.map(r=>[r.pts,r.d,r.w]));
+ }
+});
+test('draw elimination seeds quarterfinals but knockout always requires a winner and supports tie-breaks',()=>{
+ const s=setup(8);drawSettings(s,{early:3,quarter:3,late:3,tie:2,tieQuarterfinal:2});
+ for(const m of [...s.matches]){mutate(s,{type:'start',id:m.id,court:1},true);playSet(s,m,0);playSet(s,m,1);approve(s,m)}
+ const rows=standings(s),quarters=s.matches.filter(m=>m.stage==='Ćwierćfinał');assert.equal(quarters.length,4);assert.equal(quarters[0].a,rows[0].letter);assert.equal(quarters[0].b,rows[7].letter);assert(rows.every(r=>r.w===0&&r.d===5&&r.pts===10));
+ const q=quarters[0];assert(!usesTwoSets(s,q));mutate(s,{type:'start',id:q.id,court:1},true);assert.equal(q.rules.twoSets,false);
+ playSet(s,q,0);playSet(s,q,1);assert(!matchComplete(q));assert.throws(()=>mutate(s,{type:'finish',id:q.id},true));
+ for(let i=0;i<2;i++)mutate(s,{type:'point',id:q.id,side:1},true);assert(matchComplete(q));assert.equal(winner(q),q.b);approve(s,q);
+ assert.throws(()=>drawSettings(s,{draw11:3}));
+});
+test('format changes apply only to newly started elimination matches and validate draw scoring',()=>{
+ const s=setup(4),old=s.matches[0];mutate(s,{type:'start',id:old.id,court:1},true);delete old.rules.twoSets;
+ drawSettings(s);assert(!usesTwoSets(s,old));playSet(s,old,0);playSet(s,old,1);assert(!matchComplete(old));
+ const fresh=eligible(s)[0];mutate(s,{type:'start',id:fresh.id,court:2},true);assert(usesTwoSets(s,fresh));
+ mutate(s,{type:'settings',value:{...s.settings,eliminationTwoSets:false}},true);assert(usesTwoSets(s,fresh));playSet(s,fresh,0);playSet(s,fresh,1);assert(matchComplete(fresh));
+ for(const bad of [-1,1.5,'2',100])assert.throws(()=>mutate(s,{type:'settings',value:{...s.settings,draw11:bad}},true));
+ assert.throws(()=>mutate(s,{type:'settings',value:{...s.settings,eliminationTwoSets:'yes'}},true));
+});
+
+test('test match fixture completes fixed two-set games including draws',()=>{
+ const s=initial();addDemoTeams(s);for(let i=0;i<8;i++)mutate(s,{type:'assign',letter:'ABCDEFGH'[i],teamId:s.teams[i].id},true);
+ drawSettings(s,{early:3});const count=s.matches.length;assert.equal(completeDemoEliminations(s),count);const matches=s.matches.filter(m=>m.stage==='Eliminacje');assert(matches.every(m=>m.status==='done'&&m.sets.length===2));assert(matches.some(m=>!winner(m)));
 });

@@ -1,4 +1,4 @@
-import {State,prepareSchedule,team,eligible,courtCount,mutate,setWins,point} from './tournament';
+import {State,prepareSchedule,team,eligible,courtCount,mutate,matchComplete,point} from './tournament';
 const names=['Praskie Asy','Lotne Wilki','Mocny Serwis','Złoty Blok','Ekipa z Parkietu','Siatkarskie Iskry','Szybkie Piłki','Błękitne Sokoły','Waleczne Rysie','Drużyna Jutra','Królowie Tie-breaka','Leśne Żubry','Mistrzowie Zagrywki','Nieustraszeni','Ogniste Smoki','Parkietowe Pantery'];
 export function addDemoTeams(s:State){
  if(s.matches.some(m=>m.status!=='waiting'))throw Error('Drużyny testowe można dodać tylko przed rozpoczęciem turnieju.');
@@ -24,7 +24,7 @@ export function completeDemoEliminations(s:State){
    const court=Array.from({length:courtCount(s,m.stage)},(_,i)=>i+1).find(c=>!s.matches.some(x=>x.status==='live'&&x.court===c));
    if(!court)throw Error('Brak wolnego boiska.');mutate(s,{type:'start',id:m.id,court},true);
   }
-  while(!setWins(m).includes(2)){
+  while(!matchComplete(m)){
    const set=m.sets.length,side=m.id%3===0&&set===1?1-m.id%2:m.id%2;
    const previous=m.sets.length;
    while(m.sets.length===previous)point(m,side);
