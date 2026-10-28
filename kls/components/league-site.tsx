@@ -37,7 +37,16 @@ function visibleLinkLabel(link: LeagueSnapshot["links"][number]) {
   return link.url.toLocaleLowerCase("pl").startsWith("mailto:") ? link.url.slice(7) : link.label;
 }
 
-function MatchCard({ match }: { match: LeagueMatch }) {
+function MatchCard({ match, teams }: { match: LeagueMatch; teams: Team[] }) {
+  const home = teams.find((team) => team.id === match.homeTeamId) || teams.find((team) => team.name === match.homeTeam);
+  const away = teams.find((team) => team.id === match.awayTeamId) || teams.find((team) => team.name === match.awayTeam);
+  const teamLabel = (name: string, team: Team | undefined, reverse = false) => (
+    <strong style={{ display: "flex", alignItems: "center", justifyContent: reverse ? "flex-end" : "flex-start", gap: 8, minWidth: 0, flexWrap: "wrap" }}>
+      {!reverse && team?.logoUrl && <img src={team.logoUrl} alt={`Logo ${name}`} style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "contain", flexShrink: 0 }} />}
+      <span style={{ overflowWrap: "anywhere" }}>{name}</span>
+      {reverse && team?.logoUrl && <img src={team.logoUrl} alt={`Logo ${name}`} style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "contain", flexShrink: 0 }} />}
+    </strong>
+  );
   const finished = match.status === "finished";
   const dateLabel = match.displayDate || (match.matchDate.startsWith("9999-") ? "Termin do ustalenia" : polishDate.format(new Date(match.matchDate)));
   return (
@@ -48,14 +57,14 @@ function MatchCard({ match }: { match: LeagueMatch }) {
       </div>}
       <div className="match-meta"><CalendarDays size={16} />{dateLabel}</div>
       <div className="match-line">
-        <strong>{match.homeTeam}</strong>
+        {teamLabel(match.homeTeam, home)}
         <LiveMatchScore matchId={match.id} fallback={
         <div className={finished ? "score finished" : "score"}>
           {finished ? `${match.homeSets} : ${match.awaySets}` : "–"}
           <small>{finished ? (match.smallPoints && !match.setScores.length ? `małe punkty ${match.smallPoints}` : "WYNIK KOŃCOWY") : "NADCHODZĄCY"}</small>
         </div>
         } />
-        <strong>{match.awayTeam}</strong>
+        {teamLabel(match.awayTeam, away, true)}
       </div>
       {finished && match.setScores.length > 0 && <div aria-label="Wyniki setów" style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px", margin: "12px 0", fontSize: ".8rem" }}>
         <span>{match.setScores.join(" | ")}</span>
@@ -194,7 +203,7 @@ export function LeagueSite({ snapshot, page = "start", teamId, galleryAlbumId, p
 
 
 
-        {page === "start" && <section className="content-section alternate nearest-round" {...sectionProps("mecze")}><div className="section-title"><div><span className="eyebrow">{nearest.label}</span><h2>Najbliższa kolejka</h2></div><a className="section-more" href="/mecze">Cały terminarz <ChevronRight size={17} /></a></div><div className="nearest-grid">{nearest.matches.length ? nearest.matches.map(match => <MatchCard key={match.id} match={match} />) : <p className="empty-state">Terminarz najbliższej kolejki nie został jeszcze ustalony.</p>}</div></section>}
+        {page === "start" && <section className="content-section alternate nearest-round" {...sectionProps("mecze")}><div className="section-title"><div><span className="eyebrow">{nearest.label}</span><h2>Najbliższa kolejka</h2></div><a className="section-more" href="/mecze">Cały terminarz <ChevronRight size={17} /></a></div><div className="nearest-grid">{nearest.matches.length ? nearest.matches.map(match => <MatchCard key={match.id} match={match} teams={snapshot.teams} />) : <p className="empty-state">Terminarz najbliższej kolejki nie został jeszcze ustalony.</p>}</div></section>}
 
         {page === "start" && announcements.length > 0 && <section className="content-section board-announcements" aria-labelledby="board-heading">
           <div className="section-title"><div><span className="eyebrow">OD ZARZĄDU LIGI</span><h2 id="board-heading">Komunikaty zarządu</h2></div></div>
@@ -235,13 +244,13 @@ export function LeagueSite({ snapshot, page = "start", teamId, galleryAlbumId, p
                 <div id="upcoming-rounds">
                   {(showAllRounds ? upcomingRounds : upcomingRounds.slice(0, 2)).map(({ round, games }) => <section key={round} aria-label={round ? `${round}. kolejka` : "Mecze bez numeru kolejki"} style={{ marginBottom: 28 }}>
                     <h4 style={{ fontSize: "1.15rem", margin: "20px 0 12px" }}>{round ? `${round}. kolejka` : "Mecze bez numeru kolejki"}</h4>
-                    {games.map((match) => <MatchCard key={match.id} match={match} />)}
+                    {games.map((match) => <MatchCard key={match.id} match={match} teams={snapshot.teams} />)}
                   </section>)}
                 </div>
                 {upcomingRounds.length > 2 && <button type="button" className="btn dark" aria-expanded={showAllRounds} aria-controls="upcoming-rounds" onClick={() => setShowAllRounds((value) => !value)}>{showAllRounds ? "Zwiń" : "Zobacz więcej"}</button>}
               </> : <p className="empty-state">Brak zaplanowanych spotkań.</p>}
             </div>
-            {page === "mecze" && <div><h3>Ostatnie wyniki</h3>{finished.length ? finished.slice(0, 12).map((match) => <MatchCard key={match.id} match={match} />) : <p className="empty-state">Nie wpisano jeszcze wyników.</p>}</div>}
+            {page === "mecze" && <div><h3>Ostatnie wyniki</h3>{finished.length ? finished.slice(0, 12).map((match) => <MatchCard key={match.id} match={match} teams={snapshot.teams} />) : <p className="empty-state">Nie wpisano jeszcze wyników.</p>}</div>}
           </div>
 
         </section>}
@@ -280,7 +289,7 @@ export function LeagueSite({ snapshot, page = "start", teamId, galleryAlbumId, p
             <div className="section-title"><div><span className="eyebrow">WYNIKI DRUŻYNY</span><h2>Rozegrane mecze</h2></div></div>
             {finished.filter((match) => match.homeTeamId === teamPage.id || match.awayTeamId === teamPage.id || match.homeTeam === teamPage.name || match.awayTeam === teamPage.name).length ? (
               <div className="team-results-list">
-                {finished.filter((match) => match.homeTeamId === teamPage.id || match.awayTeamId === teamPage.id || match.homeTeam === teamPage.name || match.awayTeam === teamPage.name).map((match) => <MatchCard key={match.id} match={match} />)}
+                {finished.filter((match) => match.homeTeamId === teamPage.id || match.awayTeamId === teamPage.id || match.homeTeam === teamPage.name || match.awayTeam === teamPage.name).map((match) => <MatchCard key={match.id} match={match} teams={snapshot.teams} />)}
               </div>
             ) : <p className="empty-state">Ta drużyna nie rozegrała jeszcze żadnego meczu.</p>}
           </div>
