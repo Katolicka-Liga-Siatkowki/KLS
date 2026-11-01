@@ -236,3 +236,30 @@ test('test match fixture completes fixed two-set games including draws',()=>{
  const s=initial();addDemoTeams(s);for(let i=0;i<8;i++)mutate(s,{type:'assign',letter:'ABCDEFGH'[i],teamId:s.teams[i].id},true);
  drawSettings(s,{early:3});const count=s.matches.length;assert.equal(completeDemoEliminations(s),count);const matches=s.matches.filter(m=>m.stage==='Eliminacje');assert(matches.every(m=>m.status==='done'&&m.sets.length===2));assert(matches.some(m=>!winner(m)));
 });
+
+test('organizer deletes teams before play, clears their letter and rebuilds a balanced schedule',()=>{
+ const s=setup(4),id=s.teams[0].id,before=structuredClone(s);
+ assert.throws(()=>mutate(s,{type:'delete-team',teamId:id},false));assert.deepEqual(s,before);
+ mutate(s,{type:'delete-team',teamId:id},true);assert.equal(s.teams.length,3);assert(!s.slots.A);assert(!activeLetters(s).includes('A'));assert.equal(s.matches.length,3);assert(s.matches.every(m=>m.a!=='A'&&m.b!=='A'));
+ for(const letter of activeLetters(s))assert.equal(s.matches.filter(m=>m.a===letter||m.b===letter).length,2);
+ assert.throws(()=>mutate(s,{type:'delete-team',teamId:'missing'},true));
+});
+test('team deletion preserves competition once started but permits deleting an unassigned team',()=>{
+ const s=setup(4);mutate(s,{type:'team',name:'Bez przypisania',players:'Zawodnik'},true);const unassigned=s.teams.at(-1).id;
+ mutate(s,{type:'start',id:1,court:1},true);const before=structuredClone(s);
+ assert.throws(()=>mutate(s,{type:'delete-team',teamId:s.teams[0].id},true));assert.deepEqual(s,before);
+ mutate(s,{type:'delete-team',teamId:unassigned},true);assert.equal(s.teams.length,4);assert.deepEqual(s.matches,before.matches);assert.deepEqual(s.slots,before.slots);
+});
+const testCode=ts.transpileModule(readFileSync(new URL('../lib/test-tournament.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText.replace("from './tournament'",`from 'data:text/javascript;base64,${Buffer.from(source).toString('base64')}'`).replace("from './demo-teams'",`from 'data:text/javascript;base64,${Buffer.from(demoCode).toString('base64')}'`);
+const {createTestTournament,runTestAction}=await import('data:text/javascript;base64,'+Buffer.from(testCode).toString('base64'));
+test('test mode has independent fixtures, supports scores, MVP and knockout without changing original state',()=>{
+ const real=setup(4),realBefore=structuredClone(real),sandbox=createTestTournament(),snapshot=structuredClone(sandbox);
+ assert.equal(sandbox.teams.length,16);assert(sandbox.teams.every(t=>t.temporary));assert.equal(sandbox.matches.length,40);assert.equal(sandbox.settings.early,5);
+ let result=runTestAction(sandbox,{type:'complete-demo'});assert.deepEqual(sandbox,snapshot);assert.deepEqual(real,realBefore);
+ assert.equal(result.matches.filter(m=>m.status==='done').length,40);assert.equal(result.matches.filter(m=>m.stage==='Ćwierćfinał').length,4);assert.equal(mvpRanking(result).reduce((n,r)=>n+r.total,0),120);
+ for(const stage of ['Ćwierćfinał','Półfinał','O 3. miejsce','Finał'])for(const m of result.matches.filter(m=>m.stage===stage))finish(result,m);
+ assert.equal(result.matches.filter(m=>m.status==='done').length,48);assert.deepEqual(real,realBefore);
+ const fresh=createTestTournament();assert(fresh.matches.every(m=>m.status==='waiting'));assert.equal(fresh.matches.length,40);
+ assert.throws(()=>runTestAction(fresh,{type:'new-tournament',confirmed:true}));
+ const deleted=runTestAction(fresh,{type:'delete-team',teamId:fresh.teams[0].id});assert.equal(deleted.teams.length,15);assert.equal(fresh.teams.length,16);
+});

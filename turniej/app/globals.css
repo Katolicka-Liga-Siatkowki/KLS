@@ -14,3 +14,5 @@
 
 .team-list-actions{flex-wrap:wrap;justify-content:flex-end}.team-list-actions .logo-upload{margin:0;gap:6px}.team-list-actions .logo-upload input[hidden]{display:none}.team-list-identity{flex:1}.team-list-actions .logo-upload p{max-width:220px;font-size:12px}
 .history-list{display:grid;gap:10px}.history-list>div{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid #e5ebe7}.history-list small{display:block;margin-top:5px;color:#788c83}.history-detail{margin-top:24px;padding-top:20px;border-top:1px solid #e5ebe7}.history-detail h3{margin-top:20px}.history-detail .table-wrap{max-width:100%}@media(max-width:600px){.history-list>div{align-items:flex-start;flex-direction:column}}
+
+.delete-team-button{color:#a13e30;border-color:#e5bdb7}.test-mode-banner{border:2px solid #d89d2f;background:#fff8e7}.test-mode-banner strong{color:#84550b}.test-mode-banner .button-row{flex-wrap:wrap}
