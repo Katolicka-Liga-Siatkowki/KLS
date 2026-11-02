@@ -1,3 +1,4 @@
+import {verifyPassword} from './password-hash';
 import {cookies} from 'next/headers';
 import {env} from 'cloudflare:workers';
 import {equalSecret,signSession,verifySession} from './session-crypto';
@@ -10,6 +11,8 @@ export async function getTournamentUser(){
  const session=await verifySession(token,env.ADMIN_PASSWORD??'');if(!session)return null;
  if(session.role==='organizer'&&session.email!==initialOwner())return null;
  if(session.role==='referee'){
+  const credential=await env.DB.prepare('SELECT version FROM tournament_referee_credentials WHERE id=1').first<{version:string}>();
+  if(credential&&session.refereeVersion!==credential.version)return null;
   const row=await env.DB.prepare('SELECT state FROM tournament WHERE id=1').first<{state:string}>();
   if(!row||!JSON.parse(row.state).refs.includes(session.email))return null;
  }
@@ -18,11 +21,14 @@ export async function getTournamentUser(){
 export async function authenticate(email:string,password:string){
  if(!initialOwner()||(env.ADMIN_PASSWORD??'').length<12)return null;
  const role=email===initialOwner()?'organizer':'referee';
- const secret=role==='organizer'?env.ADMIN_PASSWORD:env.REFEREE_PASSWORD;
- if(!secret||secret.length<12||!equalSecret(secret,password))return null;
- if(role==='referee'){
+ let refereeVersion:string|undefined;
+ if(role==='organizer'){if(!equalSecret(env.ADMIN_PASSWORD!,password))return null}
+ else{
   const row=await env.DB.prepare('SELECT state FROM tournament WHERE id=1').first<{state:string}>();
   if(!row||!JSON.parse(row.state).refs.includes(email))return null;
+  const credential=await env.DB.prepare('SELECT password_hash,version FROM tournament_referee_credentials WHERE id=1').first<{password_hash:string,version:string}>();
+  if(credential){if(!await verifyPassword(password,credential.password_hash))return null;refereeVersion=credential.version}
+  else{const secret=env.REFEREE_PASSWORD;if(!secret||secret.length<12||!equalSecret(secret,password))return null}
  }
- return signSession({email,role,expires:Math.floor(Date.now()/1000)+sessionSeconds},env.ADMIN_PASSWORD!);
+ return signSession({email,role,refereeVersion,expires:Math.floor(Date.now()/1000)+sessionSeconds},env.ADMIN_PASSWORD!);
 }

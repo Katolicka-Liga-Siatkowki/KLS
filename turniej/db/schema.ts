@@ -4,3 +4,5 @@ export const tournament = sqliteTable('tournament', {id: integer('id').primaryKe
 export const loginAttempts=sqliteTable('tournament_login_attempts',{id:text('id').primaryKey(),startedAt:integer('started_at').notNull(),attempts:integer('attempts').notNull()});
 
 export const tournamentHistory=sqliteTable('tournament_history',{id:text('id').primaryKey(),owner:text('owner').notNull(),sourceRevision:integer('source_revision').notNull(),createdAt:text('created_at').notNull(),state:text('state').notNull()});
+
+export const refereeCredentials=sqliteTable('tournament_referee_credentials',{id:integer('id').primaryKey(),passwordHash:text('password_hash').notNull(),version:text('version').notNull()});

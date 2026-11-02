@@ -1,4 +1,4 @@
-export type Session={email:string,role:'organizer'|'referee',expires:number};
+export type Session={email:string,role:'organizer'|'referee',expires:number,refereeVersion?:string};
 const encoder=new TextEncoder();
 function encode(bytes:Uint8Array){return btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
 function decode(value:string){return Uint8Array.from(atob(value.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0))}
