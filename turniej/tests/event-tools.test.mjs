@@ -29,7 +29,7 @@ test('document list preserves targets and registration validates required contac
 });
 test('public registration, private contacts and files, token ownership, quantities and archive isolation',async()=>{
  sql.prepare('INSERT INTO tournament (id,revision,owner,state) VALUES (1,1,?,?)').run('owner@example.com',JSON.stringify((await import(domainUrl)).initial()));
- const first=await register('Asy','192.0.2.10');assert.equal(first.status,201);const a=await first.json();const second=await register('Wilki','192.0.2.11');assert.equal(second.status,201);const b=await second.json();
+ const first=await register('Asy','192.0.2.10');assert.equal(first.status,201,first.status!==201?await first.text():undefined);const a=await first.json();const second=await register('Wilki','192.0.2.11');assert.equal(second.status,201);const b=await second.json();
  const stored=sql.prepare('SELECT token_hash FROM event_registrations WHERE id=?').get(a.id);assert.notEqual(stored.token_hash,a.token);
  assert.equal((await register('Asy','192.0.2.12')).status,409);
  assert.equal((await registrations.GET(new Request('https://tournament.example/api/event/registrations'))).status,403);
@@ -67,11 +67,11 @@ test('public registration, private contacts and files, token ownership, quantiti
 test('10 MB rosters are stored in safe chunks, reconstructed exactly and rejected above the limit',async()=>{
  admin=false;const data=new Uint8Array(10*1024*1024);data.fill(32);data.set(new TextEncoder().encode('%PDF-1.4\nLarge roster'));
  const form=new FormData();for(const [key,value] of Object.entries({teamName:'Large roster team',email:'large@example.com',phone:'500600700',eventId:current(),consent:'yes'}))form.set(key,value);
- form.set('roster',new File([data],'large.pdf'));const result=await registrations.POST(new Request('https://tournament.example/api/event/registrations',{method:'POST',headers:{Origin:'https://tournament.example','CF-Connecting-IP':'192.0.2.90'},body:form}));assert.equal(result.status,201);const entry=await result.json();
+ form.set('roster',new File([data],'large.pdf'));const result=await registrations.POST(new Request('https://tournament.example/api/event/registrations',{method:'POST',headers:{Origin:'https://tournament.example','CF-Connecting-IP':'192.0.2.90'},body:form}));assert.equal(result.status,201,result.status!==201?await result.text():undefined);const entry=await result.json();
  const sizes=sql.prepare('SELECT MAX(length(data)) AS maximum,COUNT(*) AS count FROM event_roster_chunks WHERE registration_id=?').get(entry.id);assert.equal(sizes.count,20);assert(sizes.maximum<=512*1024);
  admin=true;const response=await roster.GET(new Request('https://tournament.example/api/event/roster?id='+entry.id));assert.equal(response.status,200);const bytes=new Uint8Array(await response.arrayBuffer());assert.equal(bytes.length,data.length);assert.equal(Buffer.from(await crypto.subtle.digest('SHA-256',bytes)).toString('hex'),Buffer.from(await crypto.subtle.digest('SHA-256',data)).toString('hex'));assert.equal(bytes[bytes.length-1],32);assert.equal(new TextDecoder().decode(bytes.slice(0,8)),'%PDF-1.4');
 });
 test('old unchunked roster files remain downloadable after the migration',async()=>{
- admin=false;const result=await register('Legacy file team','192.0.2.99');assert.equal(result.status,201);const entry=await result.json(),oldBytes=new TextEncoder().encode('%PDF-1.4\nLegacy');sql.prepare('UPDATE event_registrations SET file_chunk_count=0,file_data=?,file_size=? WHERE id=?').run(oldBytes,oldBytes.length,entry.id);sql.prepare('DELETE FROM event_roster_chunks WHERE registration_id=?').run(entry.id);
+ admin=false;const result=await register('Legacy file team','192.0.2.99');assert.equal(result.status,201,result.status!==201?await result.text():undefined);const entry=await result.json(),oldBytes=new TextEncoder().encode('%PDF-1.4\nLegacy');sql.prepare('UPDATE event_registrations SET file_chunk_count=0,file_data=?,file_size=? WHERE id=?').run(oldBytes,oldBytes.length,entry.id);sql.prepare('DELETE FROM event_roster_chunks WHERE registration_id=?').run(entry.id);
  admin=true;const response=await roster.GET(new Request('https://tournament.example/api/event/roster?id='+entry.id));assert.equal(response.status,200);assert.equal(await response.text(),'%PDF-1.4\nLegacy');
 });
