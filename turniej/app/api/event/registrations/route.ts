@@ -6,7 +6,7 @@ import {teamFromRegistration,removeRegisteredTeam,updateApprovedStateSql,approve
 import {prepareSchedule,type State} from '@/lib/tournament';
 export async function GET(request:Request){
  if(!await isEventOrganizer())return json({error:'Zgłoszenia są dostępne tylko organizatorowi.'},403);
- const event=await readableEvent(request,true);const rows=await env.DB.prepare('SELECT id,team_name,email,phone,file_name,file_size,status,created_at,team_id,withdrawn_at,mail_status,mail_sent_at FROM event_registrations WHERE event_id=? ORDER BY created_at DESC').bind(event).all();return json({eventId:event,registrations:rows.results,mailConfigured:registrationMailConfigured()});
+ const event=await readableEvent(request,true);const rows=await env.DB.prepare('SELECT id,team_name,email,phone,parish_name,brings_supporters,player_count,rules_accepted,file_name,file_size,status,created_at,team_id,withdrawn_at,mail_status,mail_sent_at FROM event_registrations WHERE event_id=? ORDER BY created_at DESC').bind(event).all();return json({eventId:event,registrations:rows.results,mailConfigured:registrationMailConfigured()});
 }
 export async function POST(request:Request){
  if(!originAllowed(request))return json({error:'Niedozwolone żądanie.'},403);
@@ -14,13 +14,17 @@ export async function POST(request:Request){
  try{
   const form=await limitedForm(request);if(form.get('website'))return json({error:'Nie udało się wysłać formularza.'},400);
   const fields=registrationFields(form.get('teamName'),form.get('email'),form.get('phone'));if(form.get('consent')!=='yes')throw Error('Potwierdź przekazanie danych do obsługi zgłoszenia.');
+  const parishName=typeof form.get('parishName')==='string'?String(form.get('parishName')).trim():'';if(!parishName||parishName.length>160)throw Error('Podaj nazwę parafii (maksymalnie 160 znaków).');
+  if(form.get('rulesAccepted')!=='yes')throw Error('Potwierdź przeczytanie regulaminu turnieju.');
+  const supporters=form.get('supporters');if(supporters!=='yes'&&supporters!=='no')throw Error('Wybierz, czy drużyna zabiera kibiców.');
+  const playerCount=Number(form.get('playerCount'));if(!Number.isInteger(playerCount)||playerCount<8||playerCount>12)throw Error('Liczba zawodników musi wynosić od 8 do 12.');
   const current=await eventId();if(form.get('eventId')!==current)return json({error:'Turniej zmienił się. Odśwież formularz.'},409);
   const file=form.get('roster');if(!(file instanceof File))throw Error('Dołącz plik ze składem drużyny.');
   const bytes=new Uint8Array(await file.arrayBuffer()),type=rosterType(file.name,bytes),fileName=file.name.replace(/[\x00-\x1f\x7f/\\]/g,'_').slice(0,160)||'sklad';
   const id=crypto.randomUUID(),token=crypto.randomUUID()+crypto.randomUUID(),hash=await digest(token),chunkSize=512*1024,chunkCount=Math.ceil(bytes.length/chunkSize);
   // The payload lives in chunks; keep a nonempty marker in the legacy BLOB
   // column to avoid empty-blob/null coercion in older SQLite bindings.
-  const statements=[env.DB.prepare('INSERT INTO event_registrations (id,event_id,team_name,team_key,email,phone,file_name,file_type,file_data,file_size,token_hash,created_at,file_chunk_count) SELECT ?,?,?,?,?,?,?,?,?,?,?,?,? WHERE EXISTS (SELECT 1 FROM tournament_event WHERE id=1 AND event_id=?) AND EXISTS (SELECT 1 FROM tournament WHERE id=1)').bind(id,current,fields.teamName,fields.teamKey,fields.email,fields.phone,fileName,type,new Uint8Array([0]).buffer,bytes.length,hash,new Date().toISOString(),chunkCount,current)];
+  const statements=[env.DB.prepare('INSERT INTO event_registrations (id,event_id,team_name,team_key,email,phone,parish_name,brings_supporters,player_count,rules_accepted,file_name,file_type,file_data,file_size,token_hash,created_at,file_chunk_count) SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE EXISTS (SELECT 1 FROM tournament_event WHERE id=1 AND event_id=?) AND EXISTS (SELECT 1 FROM tournament WHERE id=1)').bind(id,current,fields.teamName,fields.teamKey,fields.email,fields.phone,parishName,supporters==='yes'?1:0,playerCount,1,fileName,type,new Uint8Array([0]).buffer,bytes.length,hash,new Date().toISOString(),chunkCount,current)];
   for(let i=0;i<chunkCount;i++)statements.push(env.DB.prepare('INSERT INTO event_roster_chunks (registration_id,chunk_index,data) SELECT ?,?,? WHERE EXISTS (SELECT 1 FROM event_registrations WHERE id=?)').bind(id,i,bytes.slice(i*chunkSize,(i+1)*chunkSize).buffer,id));
   const results=await env.DB.batch(statements);if(!results[0].meta.changes)return json({error:'Zgłoszenia nie są jeszcze dostępne lub turniej się zmienił.'},409);
   let mailStatus='pending';try{mailStatus=await notifyRegistration(id)}catch{/* The registration is saved even if the notification service fails. */}
