@@ -52,8 +52,21 @@ Sesje są podpisane HMAC-SHA256 i zapisane w ciasteczku HttpOnly/Secure/SameSite
 
 ## Zgłoszenia i checklista pomocy
 
-Publiczne zakładki „Zgłoszenia do turnieju” i „Checklista pomocy” są dostępne dla gości. Formularz przyjmuje nazwę drużyny, e-mail i telefon kapitana oraz plik ze składem do 1 MB. Kontakt i plik są dostępne wyłącznie organizatorowi; przyjęcie zgłoszenia nie dodaje drużyny automatycznie do rozgrywek. Pliki są przechowywane w oddzielnej tabeli D1 i pobierane przez chroniony endpoint.
+Publiczne zakładki „Zgłoszenia do turnieju” i „Checklista pomocy” są dostępne dla gości. Formularz przyjmuje nazwę drużyny, e-mail i telefon kapitana oraz plik ze składem do 10 MB. Kontakt i plik są dostępne wyłącznie organizatorowi; przycisk „Zatwierdź drużynę” dodaje zespół do rozgrywek (lub łączy z wybranym istniejącym zespołem). Zawodników można wkleić przy zatwierdzaniu lub uzupełnić później przed rozpoczęciem meczu. Pliki są przechowywane w oddzielnej tabeli D1 i pobierane przez chroniony endpoint.
 
 Po zgłoszeniu przeglądarka zapisuje prywatny kod pozwalający zarządzać deklaracjami tej drużyny; kod można skopiować i wprowadzić na innym urządzeniu. Nie daje on dostępu do kontaktów ani plików. Publiczne deklaracje zawierają jedynie nazwę zespołu, produkt, liczbę sztuk i status dostarczenia. Lista potrzeb pochodzi z przekazanego dokumentu „Lista produktów.docx”; cele i orientacyjne ceny są w `lib/support-items.ts`.
 
 Nowy turniej atomowo archiwizuje poprzednie zgłoszenia i deklaracje oraz rozpoczyna nową listę. Organizator ma odczyt archiwalnych zgłoszeń i checklisty w historii turnieju. Tryb testowy przeglądarki nie zapisuje danych tych zakładek.
+
+## Powiadomienia o zgłoszeniach do zarządu WPLS
+
+Odbiorca jest ustalony w kodzie: `zarzad.wpls@gmail.com`. Po zapisie zgłoszenia system próbuje wysłać kontakt kapitana, nazwę drużyny i chroniony link do pliku. Duże pliki nie są załączane do maila. Przy braku usługi lub błędzie zgłoszenie pozostaje zapisane ze statusem oczekującego/błędnego powiadomienia; organizator może ponowić wysyłkę.
+
+Wybierz jedną usługę:
+
+- Google: utwórz osobny Apps Script z `google-apps-script/RegistrationMail.gs`, ustaw we właściwościach skryptu `TOURNEY_MAIL_SECRET` (losowe minimum 32 znaki), wdróż jako aplikację internetową działającą jako właściciel z dostępem „Każdy”. W sekretach GitHub dodaj `TOURNAMENT_GOOGLE_MAIL_URL` (adres `/exec`) i `TOURNAMENT_GOOGLE_MAIL_SECRET` (taka sama wartość jak w skrypcie), następnie uruchom wdrożenie. Ten skrypt wysyła wyłącznie do zarządu WPLS i nie zastępuje istniejącego skryptu strony KLS.
+- Resend: ustaw sekrety GitHub `RESEND_API_KEY` i `REGISTRATION_MAIL_FROM` (adres nadawcy zweryfikowany w Resend), następnie uruchom wdrożenie. Jeśli obie usługi są skonfigurowane, używany jest dedykowany skrypt Google.
+
+Sekretów nie wpisuj do plików repozytorium ani czatu. Powiadomienia nie są wysyłane w testach — testy korzystają z atrap usług.
+
+Pliki do 10 MB są przechowywane w fragmentach po 512 KB, aby nie przekraczać limitu pojedynczego wiersza D1. Wcześniejsze pliki pozostają dostępne. Zatwierdzanie i dodawanie drużyny oraz jej późniejsze usunięcie wraz z oznaczeniem rezygnacji odbywa się atomowo i zachowuje zgłoszenie. Drużyn przypisanych do rozpoczętych rozgrywek nie można kasować.

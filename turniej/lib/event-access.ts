@@ -14,7 +14,7 @@ export async function allowRequest(request:Request,scope:string,limit:number){
 }
 export async function limitedForm(request:Request){
  const reader=request.body?.getReader();if(!reader)throw Error('Brak formularza.');const chunks:Uint8Array[]=[];let size=0;
- while(true){const part=await reader.read();if(part.done)break;size+=part.value.byteLength;if(size>1200000){await reader.cancel();throw Error('Formularz jest za duży. Maksymalny rozmiar pliku to 1 MB.')}chunks.push(part.value)}
+ while(true){const part=await reader.read();if(part.done)break;size+=part.value.byteLength;if(size>11*1024*1024){await reader.cancel();throw Error('Formularz jest za duży. Maksymalny rozmiar pliku to 10 MB.')}chunks.push(part.value)}
  const body=new Uint8Array(size);let pos=0;for(const chunk of chunks){body.set(chunk,pos);pos+=chunk.length}
  return new Response(body,{headers:{'Content-Type':request.headers.get('Content-Type')||''}}).formData();
 }

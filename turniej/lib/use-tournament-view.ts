@@ -18,6 +18,7 @@ export function useTournamentView(loading:boolean){
     restoreScroll.current=Number.isFinite(saved.scrollY)&&saved.scrollY>=0?saved.scrollY:0;
    }
   }catch{/* Browser storage can be disabled; navigation still works. */}
+  const url=new URL(window.location.href),requestedTab=url.searchParams.get('tab');if(requestedTab&&tabs.includes(requestedTab)){setView(v=>({...v,tab:requestedTab}));restoreScroll.current=0;url.searchParams.delete('tab');window.history.replaceState(window.history.state,'',url.pathname+url.search+url.hash)}
   setHydrated(true);return()=>{window.history.scrollRestoration=previous};
  },[]);
  useEffect(()=>{

@@ -7,13 +7,16 @@ const compile=path=>ts.transpileModule(readFileSync(new URL(path,import.meta.url
 const dataUrl=code=>'data:text/javascript;base64,'+Buffer.from(code).toString('base64');
 const sql=new DatabaseSync(':memory:');for(const name of readdirSync(new URL('../drizzle',import.meta.url)).filter(n=>n.endsWith('.sql')).sort())sql.exec(readFileSync(new URL('../drizzle/'+name,import.meta.url),'utf8'));
 let admin=false;
-const db={prepare(query){let values=[];const fix=v=>v instanceof ArrayBuffer?new Uint8Array(v):v;return {bind(...args){values=args.map(fix);return this},async first(){return sql.prepare(query).get(...values)||null},async all(){return {results:sql.prepare(query).all(...values)}},async run(){const result=sql.prepare(query).run(...values);return {meta:{changes:Number(result.changes)}}}}}};
+const db={async batch(statements){sql.exec('BEGIN');try{const result=[];for(const statement of statements)result.push(await statement.run());sql.exec('COMMIT');return result}catch(e){sql.exec('ROLLBACK');throw e}},prepare(query){let values=[];const fix=v=>v instanceof ArrayBuffer?new Uint8Array(v):v;return {bind(...args){values=args.map(fix);return this},async first(){return sql.prepare(query).get(...values)||null},async all(){return {results:sql.prepare(query).all(...values)}},async run(){const result=sql.prepare(query).run(...values);return {meta:{changes:Number(result.changes)}}}}}};
 globalThis.__eventTools={db,user:()=>admin?{email:'owner@example.com'}:null};
 const envUrl=dataUrl('export const env={DB:globalThis.__eventTools.db};');
 const authUrl=dataUrl("export const getTournamentUser=async()=>globalThis.__eventTools.user();export const sameOrigin=r=>!r.headers.get('Origin')||r.headers.get('Origin')===new URL(r.url).origin;");
 const itemsUrl=dataUrl(compile('../lib/support-items.ts'));
 const accessUrl=dataUrl(compile('../lib/event-access.ts').replace("'cloudflare:workers'",JSON.stringify(envUrl)).replace("'./auth'",JSON.stringify(authUrl)));
-const route=async file=>import(dataUrl(compile('../app/api/event/'+file+'/route.ts').replaceAll("'cloudflare:workers'",JSON.stringify(envUrl)).replaceAll("'@/lib/event-access'",JSON.stringify(accessUrl)).replaceAll("'@/lib/support-items'",JSON.stringify(itemsUrl))));
+const domainUrl=dataUrl(compile('../lib/tournament.ts'));
+const teamUrl=dataUrl(compile('../lib/registration-team.ts').replace("'./tournament'",JSON.stringify(domainUrl)));
+const mailUrl=dataUrl(compile('../lib/registration-mail.ts').replace("'cloudflare:workers'",JSON.stringify(envUrl)));
+const route=async file=>import(dataUrl(compile('../app/api/event/'+file+'/route.ts').replaceAll("'cloudflare:workers'",JSON.stringify(envUrl)).replaceAll("'@/lib/event-access'",JSON.stringify(accessUrl)).replaceAll("'@/lib/support-items'",JSON.stringify(itemsUrl)).replaceAll("'@/lib/registration-mail'",JSON.stringify(mailUrl)).replaceAll("'@/lib/registration-team'",JSON.stringify(teamUrl)).replaceAll("'@/lib/tournament'",JSON.stringify(domainUrl))));
 const registrations=await route('registrations'),checklist=await route('checklist'),roster=await route('roster'),keys=await route('registration-key');
 const {registrationFields,rosterType,supportItems}=await import(itemsUrl);
 const current=()=>sql.prepare('SELECT event_id FROM tournament_event').get().event_id;
@@ -22,10 +25,10 @@ async function register(name,ip){const form=new FormData();form.set('teamName',n
 test('document list preserves targets and registration validates required contacts and files',()=>{
  assert.equal(supportItems.length,14);assert.equal(supportItems.find(i=>i.id==='radia').target,13);assert.equal(supportItems.find(i=>i.id==='olejki').target,null);assert.equal(supportItems.filter(i=>i.extra).length,3);
  assert.throws(()=>registrationFields('Team','invalid','500600700'));assert.throws(()=>registrationFields('Team','mail@example.com','bad'));assert.throws(()=>registrationFields('','mail@example.com','500600700'));
- assert.throws(()=>rosterType('file.pdf',new TextEncoder().encode('<script>not a PDF</script>')));assert.throws(()=>rosterType('file.exe',new Uint8Array([1,2,3])));assert.throws(()=>rosterType('file.txt',new Uint8Array(1024*1024+1)));
+ assert.throws(()=>rosterType('file.pdf',new TextEncoder().encode('<script>not a PDF</script>')));assert.throws(()=>rosterType('file.exe',new Uint8Array([1,2,3])));assert.throws(()=>rosterType('file.txt',new Uint8Array(10*1024*1024+1)));
 });
 test('public registration, private contacts and files, token ownership, quantities and archive isolation',async()=>{
- sql.prepare('INSERT INTO tournament (id,revision,owner,state) VALUES (1,1,?,?)').run('owner@example.com',JSON.stringify({title:'Test',matches:[],teams:[]}));
+ sql.prepare('INSERT INTO tournament (id,revision,owner,state) VALUES (1,1,?,?)').run('owner@example.com',JSON.stringify((await import(domainUrl)).initial()));
  const first=await register('Asy','192.0.2.10');assert.equal(first.status,201);const a=await first.json();const second=await register('Wilki','192.0.2.11');assert.equal(second.status,201);const b=await second.json();
  const stored=sql.prepare('SELECT token_hash FROM event_registrations WHERE id=?').get(a.id);assert.notEqual(stored.token_hash,a.token);
  assert.equal((await register('Asy','192.0.2.12')).status,409);
@@ -43,7 +46,14 @@ test('public registration, private contacts and files, token ownership, quantiti
  assert.equal((await keys.POST(req('registration-key',{eventId:current(),id:a.id,token:'wrong'}))).status,403);
  admin=true;assert.equal((await registrations.PATCH(req('registrations',{eventId:current(),id:a.id,status:'rejected'},'PATCH'))).status,200);
  admin=false;assert.equal((await pledge(a,1)).status,403);
- admin=true;assert.equal((await registrations.PATCH(req('registrations',{eventId:current(),id:a.id,status:'accepted'},'PATCH'))).status,200);
+ admin=true;assert.equal((await registrations.PATCH(req('registrations',{eventId:current(),id:a.id,action:'approve',players:'Jan Kowalski\nAnna Nowak'},'PATCH'))).status,200);
+ admin=true;
+ const already=await registrations.PATCH(req('registrations',{eventId:current(),id:a.id,action:'approve',players:'Another Player'},'PATCH'));assert.equal(already.status,200);assert.equal((await already.json()).alreadyAdded,true);
+ let state=JSON.parse(sql.prepare('SELECT state FROM tournament WHERE id=1').get().state);assert.equal(state.teams.length,1);assert.deepEqual(state.teams[0].players,['Jan Kowalski','Anna Nowak']);
+ assert.equal((await registrations.PATCH(req('registrations',{eventId:current(),id:a.id,action:'withdraw'},'PATCH'))).status,200);
+ state=JSON.parse(sql.prepare('SELECT state FROM tournament WHERE id=1').get().state);assert.equal(state.teams.length,0);assert(sql.prepare('SELECT withdrawn_at FROM event_registrations WHERE id=?').get(a.id).withdrawn_at);
+ assert.equal((await registrations.PATCH(req('registrations',{eventId:current(),id:a.id,action:'approve',players:''},'PATCH'))).status,200);
+ state=JSON.parse(sql.prepare('SELECT state FROM tournament WHERE id=1').get().state);assert.equal(state.teams.length,1);assert.equal(state.teams[0].players.length,0);
  admin=false;const archived=current(),archivedRows=sql.prepare('SELECT COUNT(*) AS n FROM event_registrations').get().n;
  const {linkEventArchiveSql,rotateEventSql}=await import(dataUrl(compile('../lib/event-archive.ts')));
  sql.exec('BEGIN');sql.prepare("INSERT INTO tournament_history (id,owner,source_revision,created_at,state) VALUES ('archive','owner@example.com',1,'now','{}')").run();sql.prepare(linkEventArchiveSql).run('archive');sql.prepare(rotateEventSql).run('new-event','archive');sql.exec('COMMIT');
@@ -52,4 +62,16 @@ test('public registration, private contacts and files, token ownership, quantiti
  assert.equal((await checklist.POST(req('checklist',{eventId:archived,registrationId:a.id,token:a.token,itemId:'balsamy',quantity:1,delivered:false}))).status,409);
  assert.equal((await checklist.GET(new Request('https://tournament.example/api/event/checklist?event='+archived))).status,403);
  admin=true;assert.equal((await (await registrations.GET(new Request('https://tournament.example/api/event/registrations?event='+archived))).json()).registrations.length,2);
+});
+
+test('10 MB rosters are stored in safe chunks, reconstructed exactly and rejected above the limit',async()=>{
+ admin=false;const data=new Uint8Array(10*1024*1024);data.fill(32);data.set(new TextEncoder().encode('%PDF-1.4\nLarge roster'));
+ const form=new FormData();for(const [key,value] of Object.entries({teamName:'Large roster team',email:'large@example.com',phone:'500600700',eventId:current(),consent:'yes'}))form.set(key,value);
+ form.set('roster',new File([data],'large.pdf'));const result=await registrations.POST(new Request('https://tournament.example/api/event/registrations',{method:'POST',headers:{Origin:'https://tournament.example','CF-Connecting-IP':'192.0.2.90'},body:form}));assert.equal(result.status,201);const entry=await result.json();
+ const sizes=sql.prepare('SELECT MAX(length(data)) AS maximum,COUNT(*) AS count FROM event_roster_chunks WHERE registration_id=?').get(entry.id);assert.equal(sizes.count,20);assert(sizes.maximum<=512*1024);
+ admin=true;const response=await roster.GET(new Request('https://tournament.example/api/event/roster?id='+entry.id));assert.equal(response.status,200);const bytes=new Uint8Array(await response.arrayBuffer());assert.equal(bytes.length,data.length);assert.equal(Buffer.from(await crypto.subtle.digest('SHA-256',bytes)).toString('hex'),Buffer.from(await crypto.subtle.digest('SHA-256',data)).toString('hex'));assert.equal(bytes[bytes.length-1],32);assert.equal(new TextDecoder().decode(bytes.slice(0,8)),'%PDF-1.4');
+});
+test('old unchunked roster files remain downloadable after the migration',async()=>{
+ admin=false;const result=await register('Legacy file team','192.0.2.99');assert.equal(result.status,201);const entry=await result.json(),oldBytes=new TextEncoder().encode('%PDF-1.4\nLegacy');sql.prepare('UPDATE event_registrations SET file_chunk_count=0,file_data=?,file_size=? WHERE id=?').run(oldBytes,oldBytes.length,entry.id);sql.prepare('DELETE FROM event_roster_chunks WHERE registration_id=?').run(entry.id);
+ admin=true;const response=await roster.GET(new Request('https://tournament.example/api/event/roster?id='+entry.id));assert.equal(response.status,200);assert.equal(await response.text(),'%PDF-1.4\nLegacy');
 });

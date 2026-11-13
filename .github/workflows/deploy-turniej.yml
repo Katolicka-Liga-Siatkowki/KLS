@@ -21,6 +21,10 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: e9f2fa314d48a4997dc0a038cbcc8226
       ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
       REFEREE_PASSWORD: ${{ secrets.REFEREE_PASSWORD }}
+      TOURNEY_GOOGLE_MAIL_URL: ${{ secrets.TOURNAMENT_GOOGLE_MAIL_URL }}
+      TOURNEY_GOOGLE_MAIL_SECRET: ${{ secrets.TOURNAMENT_GOOGLE_MAIL_SECRET }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      REGISTRATION_MAIL_FROM: ${{ secrets.REGISTRATION_MAIL_FROM }}
       WRANGLER_SEND_METRICS: 'false'
     steps:
       - uses: actions/checkout@v4
@@ -49,6 +53,22 @@ jobs:
           if [ -n "$REFEREE_PASSWORD" ]; then
             printf '%s' "$REFEREE_PASSWORD" | node node_modules/wrangler/bin/wrangler.js secret put REFEREE_PASSWORD --config wrangler.json
           fi
+      - name: Configure registration notification service
+        run: |
+          if [ -n "$TOURNEY_GOOGLE_MAIL_URL" ]; then
+            printf '%s' "$TOURNEY_GOOGLE_MAIL_URL" | node node_modules/wrangler/bin/wrangler.js secret put TOURNAMENT_GOOGLE_MAIL_URL --config wrangler.json
+          fi
+          if [ -n "$TOURNEY_GOOGLE_MAIL_SECRET" ]; then
+            printf '%s' "$TOURNEY_GOOGLE_MAIL_SECRET" | node node_modules/wrangler/bin/wrangler.js secret put TOURNAMENT_GOOGLE_MAIL_SECRET --config wrangler.json
+          fi
+          if [ -z "$TOURNEY_GOOGLE_MAIL_URL" ] && [ -z "$RESEND_API_KEY" ]; then
+            echo '::notice::Nie przekazano nowej konfiguracji wysyłki e-mail. Zgłoszenia będą zapisywane także bez aktywnej usługi pocztowej.'
+          fi
+          for mail_secret in RESEND_API_KEY REGISTRATION_MAIL_FROM; do
+            if [ -n "${!mail_secret}" ]; then
+              printf '%s' "${!mail_secret}" | node node_modules/wrangler/bin/wrangler.js secret put "$mail_secret" --config wrangler.json
+            fi
+          done
       - name: Verify public deployment
         run: node scripts/verify-deployment.mjs
       - name: Save public deployment result

@@ -17,7 +17,7 @@ export const supportItems:SupportItem[]=[
  {id:'dyfuzory',name:'Dyfuzor zapachowy',target:4,extra:true,note:'Wraz z naturalnymi olejkami eterycznymi. W dokumencie: 79 zł/szt.',url:'https://www.euro.com.pl/aromatyzery/raven-ceramiczny-ena005.bhtml'},
  {id:'olejki',name:'Naturalne olejki eteryczne do dyfuzora',target:null,extra:true,note:'Sosna, pomarańcza, drzewo herbaciane, eukaliptus. Liczba sztuk do ustalenia; w dokumencie ok. 10 zł/szt.',url:'https://mojaapteka.pl/1386-olejki-eteryczne-do-dyfuzora'},
 ];
-export const maxRosterBytes=1024*1024;
+export const maxRosterBytes=10*1024*1024;
 export function registrationFields(team:unknown,email:unknown,phone:unknown){
  const teamName=typeof team==='string'?team.trim():'',mail=typeof email==='string'?email.trim().toLowerCase():'',number=typeof phone==='string'?phone.trim():'';
  if(!teamName||teamName.length>100)throw Error('Podaj nazwę drużyny, do 100 znaków.');
@@ -26,7 +26,7 @@ export function registrationFields(team:unknown,email:unknown,phone:unknown){
  return {teamName,teamKey:teamName.toLocaleLowerCase('pl-PL'),email:mail,phone:number};
 }
 export function rosterType(name:string,bytes:Uint8Array){
- if(!bytes.length||bytes.length>maxRosterBytes)throw Error('Plik ze składem musi mieć od 1 bajta do 1 MB.');
+ if(!bytes.length||bytes.length>maxRosterBytes)throw Error('Plik ze składem musi mieć od 1 bajta do 10 MB.');
  const ext=name.split('.').pop()?.toLowerCase(),head=Array.from(bytes.slice(0,8)),starts=(values:number[])=>values.every((n,i)=>head[i]===n);
  if(ext==='pdf'&&starts([37,80,68,70,45]))return 'application/pdf';
  if(['docx','xlsx','odt'].includes(ext||'')&&starts([80,75,3,4]))return 'application/octet-stream';
@@ -34,5 +34,5 @@ export function rosterType(name:string,bytes:Uint8Array){
  if(['txt','csv'].includes(ext||'')&&!bytes.includes(0)){try{new TextDecoder('utf-8',{fatal:true}).decode(bytes);return 'text/plain'}catch{}}
  if(['jpg','jpeg'].includes(ext||'')&&starts([255,216,255]))return 'image/jpeg';
  if(ext==='png'&&starts([137,80,78,71,13,10,26,10]))return 'image/png';
- throw Error('Dołącz PDF, DOC, DOCX, XLS, XLSX, ODT, TXT, CSV, JPG lub PNG (do 1 MB).');
+ throw Error('Dołącz PDF, DOC, DOCX, XLS, XLSX, ODT, TXT, CSV, JPG lub PNG (do 10 MB).');
 }

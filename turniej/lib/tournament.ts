@@ -1,4 +1,4 @@
-export type Team={id:string,name:string,players:string[],logo?:string,temporary?:boolean};
+export type Team={id:string,name:string,players:string[],logo?:string,registrationId?:string,temporary?:boolean};
 export type Match={id:number,a:string,b:string,stage:string,status:'waiting'|'live'|'done',court:number|null,sets:number[][],score:number[],history:number[],mvp:string[],rules?:{target:number,tie:number,winByTwo?:boolean,twoSets?:boolean}};
 export type State={participants?:string[],title:string,teams:Team[],slots:Record<string,string>,matches:Match[],refs:string[],settings:{courts:number,knockoutCourts?:number,winByTwo?:boolean,winByTwoElimination?:boolean,winByTwoQuarterfinal?:boolean,winByTwoKnockout?:boolean,early:number,quarter?:number,late:number,tie:number,tieElimination?:number,tieQuarterfinal?:number,tieKnockout?:number,win20:number,win21:number,loss12:number,loss02:number,draw11?:number,eliminationTwoSets?:boolean,confirmed:boolean}};
 export const letters='ABCDEFGHIJKLMNOP'.split('');
