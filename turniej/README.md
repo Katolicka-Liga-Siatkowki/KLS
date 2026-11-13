@@ -49,3 +49,11 @@ Sesje są podpisane HMAC-SHA256 i zapisane w ciasteczku HttpOnly/Secure/SameSite
 `npm ci`, następnie `npx wrangler d1 migrations apply DB --local`. W ignorowanym pliku `.dev.vars` ustaw lokalne hasła testowe i uruchom `npm run dev`. Ciasteczko jest Secure, więc do logowania przez przeglądarkę użyj podglądu HTTPS.
 
 `npm run check` sprawdza TypeScript i testy. `npm run build` buduje aplikację. `npm run deploy` działa z poświadczeniami Cloudflare skonfigurowanymi przez CLI lub środowisko buildu.
+
+## Zgłoszenia i checklista pomocy
+
+Publiczne zakładki „Zgłoszenia do turnieju” i „Checklista pomocy” są dostępne dla gości. Formularz przyjmuje nazwę drużyny, e-mail i telefon kapitana oraz plik ze składem do 1 MB. Kontakt i plik są dostępne wyłącznie organizatorowi; przyjęcie zgłoszenia nie dodaje drużyny automatycznie do rozgrywek. Pliki są przechowywane w oddzielnej tabeli D1 i pobierane przez chroniony endpoint.
+
+Po zgłoszeniu przeglądarka zapisuje prywatny kod pozwalający zarządzać deklaracjami tej drużyny; kod można skopiować i wprowadzić na innym urządzeniu. Nie daje on dostępu do kontaktów ani plików. Publiczne deklaracje zawierają jedynie nazwę zespołu, produkt, liczbę sztuk i status dostarczenia. Lista potrzeb pochodzi z przekazanego dokumentu „Lista produktów.docx”; cele i orientacyjne ceny są w `lib/support-items.ts`.
+
+Nowy turniej atomowo archiwizuje poprzednie zgłoszenia i deklaracje oraz rozpoczyna nową listę. Organizator ma odczyt archiwalnych zgłoszeń i checklisty w historii turnieju. Tryb testowy przeglądarki nie zapisuje danych tych zakładek.

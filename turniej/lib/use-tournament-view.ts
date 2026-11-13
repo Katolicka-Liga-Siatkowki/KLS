@@ -2,7 +2,7 @@
 import type {MvpPhase} from './tournament';
 import {useEffect,useRef,useState} from 'react';
 const key='centrum-turnieju:view:v1';
-const tabs=['overview','schedule','table','mvp','bracket','teams','ref','settings'];
+const tabs=['overview','schedule','table','mvp','bracket','teams','ref','settings','support','registrations'];
 const filters=['Wszystkie','Oczekuje','W grze','Zakończone'];
 type View={tab:string,selected:number|null,filter:string,pairing:string,mvpPhase:MvpPhase};
 const defaults:View={tab:'overview',selected:null,filter:'Wszystkie',pairing:'current',mvpPhase:'regular'};

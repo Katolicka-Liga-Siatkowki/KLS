@@ -11,7 +11,9 @@ for(let i=0;i<15;i++){
   if(data.state.teams.some(t=>t.temporary))throw Error('Publiczne API zawiera drużyny testowe.');
   const write=await fetch(url+'/api/tournament',{method:'POST',headers:{'Content-Type':'application/json','Origin':url},body:JSON.stringify({type:'setup'})});
   if(write.status!==401)throw Error(`Anonimowa edycja nie została zablokowana: HTTP ${write.status}`);
-  const result={url,publicRead:true,anonymousWriteBlocked:true,temporaryTeams:0};
+  const checklist=await fetch(url+'/api/event/checklist');if(!checklist.ok||(await checklist.json()).items?.length!==14)throw Error('Publiczna checklista nie jest dostępna.');
+  const registrations=await fetch(url+'/api/event/registrations');if(registrations.status!==403)throw Error('Zgłoszenia nie są chronione przed publicznym odczytem.');
+  const result={url,publicRead:true,anonymousWriteBlocked:true,temporaryTeams:0,publicChecklist:true,privateRegistrationsBlocked:true};
   await writeFile('deployment-result.json',JSON.stringify(result,null,2)+'\n');
   if(process.env.GITHUB_STEP_SUMMARY)await appendFile(process.env.GITHUB_STEP_SUMMARY,`## Turniej opublikowany\n\n${url}\n\nPubliczny odczyt: OK. Anonimowa edycja: zablokowana. Drużyny testowe: 0.\n`);
   console.log(JSON.stringify(result));process.exit(0);
