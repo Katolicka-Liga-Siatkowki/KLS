@@ -85,11 +85,11 @@ test('no deuce ends at 21:20 and tiebreak 15:14, with undo and rule snapshots',(
  const bad={...s.settings,winByTwo:'no'};assert.throws(()=>mutate(s,{type:'settings',value:bad},true));
 });
 test('each stage has independent advantage rules and keeps its starting rules',()=>{
- const s=setup(8);mutate(s,{type:'settings',value:{...s.settings,confirmed:true,early:2,late:2,winByTwoElimination:false,winByTwoQuarterfinal:true,winByTwoKnockout:false}},true);
+ const s=setup(8);mutate(s,{type:'settings',value:{...s.settings,confirmed:true,early:2,semi:2,final:2,late:2,winByTwoElimination:false,winByTwoQuarterfinal:true,winByTwoSemifinal:false,winByTwoFinal:false,winByTwoKnockout:false}},true);
  for(const m of [...s.matches]){finish(s,m);assert.equal(m.rules.winByTwo,false)}
  for(const m of s.matches.filter(m=>m.stage==='Ćwierćfinał')){finish(s,m);assert.equal(m.rules.winByTwo,true)}
  const semi=s.matches.find(m=>m.stage==='Półfinał');mutate(s,{type:'start',id:semi.id,court:1},true);assert.equal(semi.rules.winByTwo,false);
- mutate(s,{type:'settings',value:{...s.settings,winByTwoKnockout:true}},true);assert.equal(semi.rules.winByTwo,false);
+ mutate(s,{type:'settings',value:{...s.settings,winByTwoSemifinal:true,winByTwoFinal:true,winByTwoKnockout:true}},true);assert.equal(semi.rules.winByTwo,false);
  for(let i=0;i<4;i++)mutate(s,{type:'point',id:semi.id,side:0},true);
  mutate(s,{type:'mvp',id:semi.id,values:[s.teams.find(t=>t.id===s.slots[semi.b]).players[0],s.teams.find(t=>t.id===s.slots[semi.a]).players[0],semi.a+':'+s.teams.find(t=>t.id===s.slots[semi.a]).players[0]]},true);mutate(s,{type:'finish',id:semi.id},true);
  for(const m of s.matches.filter(m=>m.stage==='Półfinał'&&m.status==='waiting')){finish(s,m);assert.equal(m.rules.winByTwo,true)}
@@ -105,7 +105,7 @@ test('phase point targets and tiebreaks remain editable during competition',()=>
  for(let i=0;i<6;i++)mutate(s,{type:'point',id:q.id,side:0},true);
  mutate(s,{type:'mvp',id:q.id,values:[s.teams.find(t=>t.id===s.slots[q.b]).players[0],s.teams.find(t=>t.id===s.slots[q.a]).players[0],q.a+':'+s.teams.find(t=>t.id===s.slots[q.a]).players[0]]},true);mutate(s,{type:'finish',id:q.id},true);
  for(const m of s.matches.filter(m=>m.stage==='Ćwierćfinał'&&m.status==='waiting')){finish(s,m);assert.equal(m.rules.target,5);assert.equal(m.rules.tie,6);assert.equal(m.rules.winByTwo,false)}
- mutate(s,{type:'settings',value:{...s.settings,late:7,tieKnockout:8}},true);
+ mutate(s,{type:'settings',value:{...s.settings,semi:7,final:7,late:7,tieSemifinal:8,tieFinal:8,tieKnockout:8}},true);
  for(const m of s.matches.filter(m=>m.stage==='Półfinał')){finish(s,m);assert.equal(m.rules.target,7);assert.equal(m.rules.tie,8)}
 });
 
@@ -199,7 +199,7 @@ test('new tournament requires organizer confirmation, clears competition and tea
 
 function playSet(s,m,side){for(let p=0;p<m.rules.target;p++)mutate(s,{type:'point',id:m.id,side},true)}
 function approve(s,m){mutate(s,{type:'mvp',id:m.id,values:[s.teams.find(t=>t.id===s.slots[m.b]).players[0],s.teams.find(t=>t.id===s.slots[m.a]).players[0],m.a+':'+s.teams.find(t=>t.id===s.slots[m.a]).players[0]]},true);mutate(s,{type:'finish',id:m.id},true)}
-function drawSettings(s,extra={}){mutate(s,{type:'settings',value:{...s.settings,eliminationTwoSets:true,draw11:2,win20:3,loss02:0,confirmed:true,...extra}},true)}
+function drawSettings(s,extra={}){mutate(s,{type:'settings',value:{...s.settings,eliminationFormat:'two',eliminationTwoSets:true,draw11:2,win20:3,loss02:0,confirmed:true,...extra}},true)}
 test('two-set elimination supports 2:0, 1:1 and 0:2 with live draw points, approval and undo',()=>{
  for(const sides of [[0,0],[0,1],[1,0],[1,1]]){
   const s=setup(2);drawSettings(s);const m=s.matches[0];assert(usesTwoSets(s,m));mutate(s,{type:'start',id:m.id,court:1},true);
@@ -227,9 +227,17 @@ test('format changes apply only to newly started elimination matches and validat
  const s=setup(4),old=s.matches[0];mutate(s,{type:'start',id:old.id,court:1},true);delete old.rules.twoSets;
  drawSettings(s);assert(!usesTwoSets(s,old));playSet(s,old,0);playSet(s,old,1);assert(!matchComplete(old));
  const fresh=eligible(s)[0];mutate(s,{type:'start',id:fresh.id,court:2},true);assert(usesTwoSets(s,fresh));
- mutate(s,{type:'settings',value:{...s.settings,eliminationTwoSets:false}},true);assert(usesTwoSets(s,fresh));playSet(s,fresh,0);playSet(s,fresh,1);assert(matchComplete(fresh));
+ mutate(s,{type:'settings',value:{...s.settings,eliminationFormat:'best',eliminationTwoSets:false}},true);assert(usesTwoSets(s,fresh));playSet(s,fresh,0);playSet(s,fresh,1);assert(matchComplete(fresh));
  for(const bad of [-1,1.5,'2',100])assert.throws(()=>mutate(s,{type:'settings',value:{...s.settings,draw11:bad}},true));
- assert.throws(()=>mutate(s,{type:'settings',value:{...s.settings,eliminationTwoSets:'yes'}},true));
+ assert.throws(()=>mutate(s,{type:'settings',value:{...s.settings,eliminationFormat:'invalid'}},true));
+});
+
+test('one-set format works independently in every phase and has separate table points',()=>{
+ const s=setup(8);mutate(s,{type:'settings',value:{...s.settings,confirmed:true,eliminationFormat:'one',quarterFormat:'one',semifinalFormat:'one',finalFormat:'one',early:2,quarter:3,semi:4,final:5,winByTwoElimination:false,winByTwoQuarterfinal:false,winByTwoSemifinal:false,winByTwoFinal:false,win10:3,loss01:1}},true);
+ const playStage=stage=>{for(const m of s.matches.filter(m=>m.stage===stage&&m.status==='waiting')){mutate(s,{type:'start',id:m.id,court:1},true);assert.equal(m.rules.format,'one');for(let i=0;i<m.rules.target;i++)mutate(s,{type:'point',id:m.id,side:0},true);assert(matchComplete(m));assert.equal(m.sets.length,1);approve(s,m)}};
+ playStage('Eliminacje');assert(standings(s).every(r=>r.played===5));assert.equal(standings(s).reduce((sum,r)=>sum+r.pts,0),s.matches.filter(m=>m.stage==='Eliminacje').length*4);
+ playStage('Ćwierćfinał');playStage('Półfinał');playStage('O 3. miejsce');playStage('Finał');
+ assert(s.matches.filter(m=>m.stage!=='Eliminacje').every(m=>m.status==='done'&&m.sets.length===1));
 });
 
 test('test match fixture completes fixed two-set games including draws',()=>{
