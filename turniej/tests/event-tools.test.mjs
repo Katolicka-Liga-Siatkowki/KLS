@@ -48,6 +48,8 @@ test('public registration, private contacts and files, token ownership, quantiti
  admin=false;assert.equal((await pledge(a,1)).status,403);
  admin=true;assert.equal((await registrations.PATCH(req('registrations',{eventId:current(),id:a.id,action:'approve',players:'Jan Kowalski\nAnna Nowak'},'PATCH'))).status,200);
  const code=sql.prepare('SELECT captain_token,token_hash,captain_mail_status FROM event_registrations WHERE id=?').get(a.id);assert(code.captain_token);assert.equal(code.captain_mail_status,'pending');
+ assert.match(code.captain_token,/^ASY-[A-HJ-NP-Z2-9]{6}$/);
+ const shortResult=await keys.POST(req('registration-key',{eventId:current(),code:code.captain_token.toLowerCase()}));assert.equal(shortResult.status,200);const shortData=await shortResult.json();assert.equal(shortData.id,a.id);assert.equal(shortData.token,code.captain_token);
  assert.equal((await keys.POST(req('registration-key',{eventId:current(),id:a.id,token:code.captain_token}))).status,200);
  assert.equal((await keys.POST(req('registration-key',{eventId:current(),id:a.id,token:a.token}))).status,403);
  assert.equal((await registrations.PATCH(req('registrations',{eventId:current(),id:a.id,action:'captain-code'},'PATCH'))).status,200);

@@ -2,11 +2,16 @@ import {env} from 'cloudflare:workers';
 export const registrationRecipient='zarzad.wpls@gmail.com';
 const appUrl='https://kls-turniej.katolickaligasiatkowki.workers.dev';
 export function registrationMailConfigured(){return !!(env.TOURNAMENT_GOOGLE_MAIL_URL&&env.TOURNAMENT_GOOGLE_MAIL_SECRET)||!!(env.RESEND_API_KEY&&env.REGISTRATION_MAIL_FROM)}
+export function shortCaptainCode(teamName:string){
+ const prefix=teamName.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[łŁ]/g,'L').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,5)||'TEAM';
+ const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',bytes=crypto.getRandomValues(new Uint8Array(6));
+ return prefix+'-'+Array.from(bytes,value=>alphabet[value&31]).join('');
+}
 export async function sendCaptainCode(id:string,event:string,regenerate=false):Promise<string>{
  const row=await env.DB.prepare("SELECT email,team_name,captain_token,captain_message_id,captain_mail_status FROM event_registrations WHERE id=? AND event_id=? AND status='accepted' AND team_id IS NOT NULL AND event_id=(SELECT event_id FROM tournament_event WHERE id=1)").bind(id,event).first<{email:string,team_name:string,captain_token:string|null,captain_message_id:string|null,captain_mail_status:string}>();
  if(!row)throw Error('Kod można wysłać tylko kapitanowi zatwierdzonej drużyny.');
  if(!row.captain_token||regenerate){
-  const token=crypto.randomUUID()+crypto.randomUUID(),messageId=crypto.randomUUID();
+  const token=shortCaptainCode(row.team_name),messageId=crypto.randomUUID();
   const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(token)))).map(x=>x.toString(16).padStart(2,'0')).join('');
   const changed=await env.DB.prepare("UPDATE event_registrations SET captain_token=?,token_hash=?,captain_message_id=?,captain_mail_status='pending',captain_mail_sent_at=NULL WHERE id=? AND event_id=? AND status='accepted' AND captain_message_id IS ? AND event_id=(SELECT event_id FROM tournament_event WHERE id=1)").bind(token,hash,messageId,id,event,row.captain_message_id).run();
   if(!changed.meta.changes)throw Error('Kod zmienił się na innym urządzeniu. Odśwież zgłoszenia.');
@@ -14,7 +19,7 @@ export async function sendCaptainCode(id:string,event:string,regenerate=false):P
  }
  if(row.captain_mail_status==='sent')return 'sent';
  if(!registrationMailConfigured())return 'pending';
- const messageId=row.captain_message_id!,subject='[WPLS] Drużyna zatwierdzona — kod do checklisty',text=`Drużyna „${row.team_name}” została zatwierdzona do turnieju.\n\nTwój prywatny kod do zaznaczania rzeczy na checkliście:\n${id}.${row.captain_token}\n\nOtwórz ${appUrl}/?tab=support i rozwiń „Masz prywatny kod deklaracji z innego urządzenia?”. Wklej powyższy kod.\n\nKod pozwala zarządzać deklaracjami tylko Twojej drużyny. Zachowaj go dla siebie. Nowy kod wygenerowany przez zarząd zastępuje poprzedni.\n\nZarząd WPLS`;
+ const messageId=row.captain_message_id!,subject='[WPLS] Drużyna zatwierdzona — kod do checklisty',text=`Drużyna „${row.team_name}” została zatwierdzona do turnieju.\n\nTwój prywatny kod do zaznaczania rzeczy na checkliście:\n${row.captain_token?.includes('-')&& !row.captain_token.includes('.') && row.captain_token.length<20?row.captain_token:id+'.'+row.captain_token}\n\nOtwórz ${appUrl}/?tab=support i rozwiń „Masz prywatny kod deklaracji z innego urządzenia?”. Wklej powyższy kod.\n\nKod pozwala zarządzać deklaracjami tylko Twojej drużyny. Zachowaj go dla siebie. Nowy kod wygenerowany przez zarząd zastępuje poprzedni.\n\nZarząd WPLS`;
  try{
   if(env.TOURNAMENT_GOOGLE_MAIL_URL&&env.TOURNAMENT_GOOGLE_MAIL_SECRET){
    if(!/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(env.TOURNAMENT_GOOGLE_MAIL_URL)||env.TOURNAMENT_GOOGLE_MAIL_SECRET.length<32)throw Error('mail configuration');
