@@ -1,12 +1,12 @@
 import {env} from 'cloudflare:workers';
 import {registrationFields,rosterType} from '@/lib/support-items';
 import {json,isEventOrganizer,eventId,readableEvent,originAllowed,digest,allowRequest,limitedForm} from '@/lib/event-access';
-import {registrationMailConfigured,notifyRegistration} from '@/lib/registration-mail';
+import {registrationMailConfigured,notifyRegistration,sendCaptainCode} from '@/lib/registration-mail';
 import {teamFromRegistration,removeRegisteredTeam,updateApprovedStateSql,approveRegistrationSql,removeStateSql,unlinkRegistrationSql} from '@/lib/registration-team';
 import {prepareSchedule,type State} from '@/lib/tournament';
 export async function GET(request:Request){
  if(!await isEventOrganizer())return json({error:'Zgłoszenia są dostępne tylko organizatorowi.'},403);
- const event=await readableEvent(request,true);const rows=await env.DB.prepare('SELECT id,team_name,email,phone,parish_name,brings_supporters,player_count,rules_accepted,file_name,file_size,status,created_at,team_id,withdrawn_at,mail_status,mail_sent_at FROM event_registrations WHERE event_id=? ORDER BY created_at DESC').bind(event).all();return json({eventId:event,registrations:rows.results,mailConfigured:registrationMailConfigured()});
+ const event=await readableEvent(request,true);const rows=await env.DB.prepare('SELECT id,team_name,email,phone,parish_name,brings_supporters,player_count,rules_accepted,file_name,file_size,status,created_at,team_id,withdrawn_at,mail_status,mail_sent_at,captain_mail_status,captain_mail_sent_at FROM event_registrations WHERE event_id=? ORDER BY created_at DESC').bind(event).all();return json({eventId:event,registrations:rows.results,mailConfigured:registrationMailConfigured()});
 }
 export async function POST(request:Request){
  if(!originAllowed(request))return json({error:'Niedozwolone żądanie.'},403);
@@ -39,6 +39,7 @@ export async function PATCH(request:Request){
   if(!registration)return json({error:'Nie znaleziono zgłoszenia.'},404);
   if(body.action==='retry-email')return json({ok:true,mailStatus:await notifyRegistration(body.id)});
   if(body.eventId!==await eventId())return json({error:'Archiwalne zgłoszenia są tylko do odczytu.'},409);
+  if(body.action==='captain-code'||body.action==='retry-captain-email')return json({ok:true,captainMailStatus:await sendCaptainCode(body.id,body.eventId,body.action==='captain-code')});
   if(body.action==='approve'||body.action==='withdraw'){
    const row=await env.DB.prepare('SELECT state,revision FROM tournament WHERE id=1').first<{state:string,revision:number}>();if(!row)return json({error:'Nie znaleziono turnieju.'},409);
    const state=prepareSchedule(JSON.parse(row.state) as State),marker=crypto.randomUUID();
@@ -48,7 +49,8 @@ export async function PATCH(request:Request){
     const team=teamFromRegistration(state,body.id,registration.team_name,body.players,body.existingTeamId);
     const results=await env.DB.batch([env.DB.prepare(updateApprovedStateSql).bind(JSON.stringify(state),marker,row.revision,body.id,body.eventId,registration.status,body.eventId),env.DB.prepare(approveRegistrationSql).bind(team.id,body.id,body.eventId,marker)]);
     if(!results[0].meta.changes||!results[1].meta.changes)return json({error:'Dane zmieniły się na innym urządzeniu. Odśwież listę i zatwierdź ponownie.'},409);
-    return json({ok:true,teamId:team.id,needsRoster:team.players.length===0});
+    let captainMailStatus='pending';try{captainMailStatus=await sendCaptainCode(body.id,body.eventId)}catch{/* Approval stays saved; organizer can retry delivery. */}
+    return json({ok:true,teamId:team.id,needsRoster:team.players.length===0,captainMailStatus});
    }
    if(!registration.team_id)return json({error:'Zgłoszenie nie jest powiązane z drużyną.'},409);
    removeRegisteredTeam(state,registration.team_id);

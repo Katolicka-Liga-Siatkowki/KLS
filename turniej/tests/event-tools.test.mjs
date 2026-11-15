@@ -47,6 +47,13 @@ test('public registration, private contacts and files, token ownership, quantiti
  admin=true;assert.equal((await registrations.PATCH(req('registrations',{eventId:current(),id:a.id,status:'rejected'},'PATCH'))).status,200);
  admin=false;assert.equal((await pledge(a,1)).status,403);
  admin=true;assert.equal((await registrations.PATCH(req('registrations',{eventId:current(),id:a.id,action:'approve',players:'Jan Kowalski\nAnna Nowak'},'PATCH'))).status,200);
+ const code=sql.prepare('SELECT captain_token,token_hash,captain_mail_status FROM event_registrations WHERE id=?').get(a.id);assert(code.captain_token);assert.equal(code.captain_mail_status,'pending');
+ assert.equal((await keys.POST(req('registration-key',{eventId:current(),id:a.id,token:code.captain_token}))).status,200);
+ assert.equal((await keys.POST(req('registration-key',{eventId:current(),id:a.id,token:a.token}))).status,403);
+ assert.equal((await registrations.PATCH(req('registrations',{eventId:current(),id:a.id,action:'captain-code'},'PATCH'))).status,200);
+ const rotated=sql.prepare('SELECT captain_token FROM event_registrations WHERE id=?').get(a.id);assert.notEqual(rotated.captain_token,code.captain_token);
+ assert.equal((await keys.POST(req('registration-key',{eventId:current(),id:a.id,token:code.captain_token}))).status,403);
+ assert.equal((await registrations.PATCH(req('registrations',{eventId:current(),id:a.id,action:'retry-captain-email'},'PATCH'))).status,200);assert.equal(sql.prepare('SELECT captain_token FROM event_registrations WHERE id=?').get(a.id).captain_token,rotated.captain_token);
  admin=true;
  const already=await registrations.PATCH(req('registrations',{eventId:current(),id:a.id,action:'approve',players:'Another Player'},'PATCH'));assert.equal(already.status,200);assert.equal((await already.json()).alreadyAdded,true);
  let state=JSON.parse(sql.prepare('SELECT state FROM tournament WHERE id=1').get().state);assert.equal(state.teams.length,1);assert.deepEqual(state.teams[0].players,['Jan Kowalski','Anna Nowak']);
