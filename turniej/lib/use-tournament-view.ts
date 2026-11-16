@@ -4,6 +4,8 @@ import {useEffect,useRef,useState} from 'react';
 const key='centrum-turnieju:view:v1';
 const tabs=['overview','schedule','table','mvp','bracket','teams','ref','settings','support','registrations'];
 const filters=['Wszystkie','Oczekuje','W grze','Zakończone'];
+const tabPaths:Record<string,string>={registrations:'/zgloszenia',support:'/checklista'};
+function pathTab(){const path=decodeURIComponent(window.location.pathname).replace(/\/$/,'');return path==='/zgloszenia'||path==='/zgłoszenia'?'registrations':path==='/checklista'?'support':null}
 type View={tab:string,selected:number|null,filter:string,pairing:string,mvpPhase:MvpPhase};
 const defaults:View={tab:'overview',selected:null,filter:'Wszystkie',pairing:'current',mvpPhase:'regular'};
 export function useTournamentView(loading:boolean){
@@ -19,7 +21,10 @@ export function useTournamentView(loading:boolean){
    }
   }catch{/* Browser storage can be disabled; navigation still works. */}
   const url=new URL(window.location.href),requestedTab=url.searchParams.get('tab');if(requestedTab&&tabs.includes(requestedTab)){setView(v=>({...v,tab:requestedTab}));restoreScroll.current=0;url.searchParams.delete('tab');window.history.replaceState(window.history.state,'',url.pathname+url.search+url.hash)}
-  setHydrated(true);return()=>{window.history.scrollRestoration=previous};
+  const fromPath=pathTab();if(fromPath){setView(v=>({...v,tab:fromPath}));}
+  const onBack=()=>{const requested=pathTab()??new URL(window.location.href).searchParams.get('tab')??'overview';setView(v=>({...v,tab:tabs.includes(requested)?requested:'overview',selected:null}));};
+  window.addEventListener('popstate',onBack);
+  setHydrated(true);return()=>{window.history.scrollRestoration=previous;window.removeEventListener('popstate',onBack)};
  },[]);
  useEffect(()=>{
   if(!hydrated)return;
@@ -41,5 +46,5 @@ export function useTournamentView(loading:boolean){
   });
   return()=>{cancelled=true;cancelAnimationFrame(frame)};
  },[loading,hydrated,view]);
- return {...view,setMvpPhase:(mvpPhase:MvpPhase)=>setView(v=>({...v,mvpPhase})),setTab:(tab:string)=>setView(v=>({...v,tab})),setSelected:(selected:number|null)=>setView(v=>({...v,selected})),setFilter:(filter:string)=>setView(v=>({...v,filter})),setPairing:(pairing:string)=>setView(v=>({...v,pairing}))};
+ return {...view,setMvpPhase:(mvpPhase:MvpPhase)=>setView(v=>({...v,mvpPhase})),setTab:(tab:string)=>{const path=tabPaths[tab]??(tab==='overview'?'/':'/?tab='+encodeURIComponent(tab));if(window.location.pathname+window.location.search!==path)window.history.pushState(window.history.state,'',path);setView(v=>({...v,tab}));},setSelected:(selected:number|null)=>setView(v=>({...v,selected})),setFilter:(filter:string)=>setView(v=>({...v,filter})),setPairing:(pairing:string)=>setView(v=>({...v,pairing}))};
 }
