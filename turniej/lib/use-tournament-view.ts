@@ -2,12 +2,12 @@
 import type {MvpPhase} from './tournament';
 import {useEffect,useRef,useState} from 'react';
 const key='centrum-turnieju:view:v1';
-const tabs=['overview','schedule','table','mvp','bracket','teams','ref','settings','support','registrations'];
+const tabs=['home','overview','schedule','table','mvp','bracket','teams','ref','settings','support','registrations'];
 const filters=['Wszystkie','Oczekuje','W grze','Zakończone'];
-const tabPaths:Record<string,string>={overview:'/centrum',schedule:'/terminarz',table:'/tabela',mvp:'/ranking-mvp',bracket:'/faza-pucharowa',teams:'/druzyny',ref:'/panel-sedziego',settings:'/panel-zawodow',registrations:'/zgloszenia',support:'/checklista'};
-function pathTab(){const path=decodeURIComponent(window.location.pathname).replace(/\/$/,'');return path==='/zgłoszenia'?'registrations':Object.entries(tabPaths).find(([,value])=>value===path)?.[0]??null}
+const tabPaths:Record<string,string>={home:'/',overview:'/centrum',schedule:'/terminarz',table:'/tabela',mvp:'/ranking-mvp',bracket:'/faza-pucharowa',teams:'/druzyny',ref:'/panel-sedziego',settings:'/panel-zawodow',registrations:'/zgloszenia',support:'/checklista'};
+function pathTab(){const path=decodeURIComponent(window.location.pathname).replace(/\/$/,'');return path==='/zgłoszenia'?'registrations':Object.entries(tabPaths).find(([,value])=>value===(path||'/'))?.[0]??null}
 type View={tab:string,selected:number|null,filter:string,pairing:string,mvpPhase:MvpPhase};
-const defaults:View={tab:'overview',selected:null,filter:'Wszystkie',pairing:'current',mvpPhase:'regular'};
+const defaults:View={tab:'home',selected:null,filter:'Wszystkie',pairing:'current',mvpPhase:'regular'};
 export function useTournamentView(loading:boolean){
  const [view,setView]=useState<View>(defaults),[hydrated,setHydrated]=useState(false);
  const restoreScroll=useRef<number|null>(null);
@@ -21,8 +21,8 @@ export function useTournamentView(loading:boolean){
    }
   }catch{/* Browser storage can be disabled; navigation still works. */}
   const url=new URL(window.location.href),requestedTab=url.searchParams.get('tab');if(requestedTab&&tabs.includes(requestedTab)){setView(v=>({...v,tab:requestedTab}));restoreScroll.current=0;url.searchParams.delete('tab');window.history.replaceState(window.history.state,'',url.pathname+url.search+url.hash)}
-  const fromPath=pathTab();if(fromPath){setView(v=>({...v,tab:fromPath}));}
-  const onBack=()=>{const requested=pathTab()??new URL(window.location.href).searchParams.get('tab')??'overview';setView(v=>({...v,tab:tabs.includes(requested)?requested:'overview',selected:null}));};
+  const fromPath=pathTab();if(fromPath&&!(fromPath==='home'&&requestedTab&&tabs.includes(requestedTab))){setView(v=>({...v,tab:fromPath}));}
+  const onBack=()=>{const requested=pathTab()??new URL(window.location.href).searchParams.get('tab')??'home';setView(v=>({...v,tab:tabs.includes(requested)?requested:'home',selected:null}));};
   window.addEventListener('popstate',onBack);
   setHydrated(true);return()=>{window.history.scrollRestoration=previous;window.removeEventListener('popstate',onBack)};
  },[]);
