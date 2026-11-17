@@ -1,6 +1,6 @@
 import {env} from 'cloudflare:workers';
 export const registrationRecipient='zarzad.wpls@gmail.com';
-const appUrl='https://kls-turniej.katolickaligasiatkowki.workers.dev';
+const appUrl='https://turniej.razemgramy.pl';
 export function registrationMailConfigured(){return !!(env.TOURNAMENT_GOOGLE_MAIL_URL&&env.TOURNAMENT_GOOGLE_MAIL_SECRET)||!!(env.RESEND_API_KEY&&env.REGISTRATION_MAIL_FROM)}
 export function shortCaptainCode(teamName:string){
  const prefix=teamName.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[łŁ]/g,'L').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,5)||'TEAM';
@@ -38,11 +38,13 @@ export async function notifyRegistration(id:string):Promise<string>{
  if(!registrationMailConfigured())return 'pending';
  const registration=await env.DB.prepare('SELECT id,team_name,email,phone,parish_name,brings_supporters,player_count,file_name,mail_status FROM event_registrations WHERE id=?').bind(id).first<{id:string,team_name:string,email:string,phone:string,parish_name:string,brings_supporters:number,player_count:number,file_name:string,mail_status:string}>();
  if(!registration)return 'failed';if(registration.mail_status==='sent')return 'sent';
+ const tournament=await env.DB.prepare('SELECT state FROM tournament WHERE id=1').first<{state:string}>();
+ const tournamentTitle=tournament?JSON.parse(tournament.state).title:'Turniej siatkówki';
  const lock=crypto.randomUUID(),now=Math.floor(Date.now()/1000);
  const claimed=await env.DB.prepare("UPDATE event_registrations SET mail_status='sending',mail_lock=?,mail_lock_at=? WHERE id=? AND mail_status<>'sent' AND (mail_lock IS NULL OR mail_lock_at<?)").bind(lock,now,id,now-120).run();if(!claimed.meta.changes)return 'sending';
  const subject='[WPLS] Nowe zgłoszenie: '+registration.team_name.replace(/[\r\n]/g,' ');
  const legacyFile=registration.file_name?`\nPlik ze składem: ${registration.file_name}\nPobierz skład (wymaga zalogowania):\n${appUrl}/api/event/roster?id=${encodeURIComponent(id)}\n`:'';
- const text=`Nowe zgłoszenie do turnieju.\n\nDrużyna: ${registration.team_name}\nParafia: ${registration.parish_name}\nE-mail kapitana: ${registration.email}\nTelefon: ${registration.phone}\nLiczba zawodników: ${registration.player_count}\nKibice: ${registration.brings_supporters?'tak':'nie'}\nRegulamin: przeczytany i zaakceptowany\n${legacyFile}\nZatwierdź drużynę po zalogowaniu jako organizator:\n${appUrl}/?tab=registrations\n\nIdentyfikator zgłoszenia: ${id}`;
+ const text=`Nowe zgłoszenie do turnieju.\n\nTurniej: ${tournamentTitle}\nDrużyna: ${registration.team_name}\nParafia: ${registration.parish_name}\nE-mail kapitana: ${registration.email}\nTelefon: ${registration.phone}\nLiczba zawodników: ${registration.player_count}\nKibice: ${registration.brings_supporters?'tak':'nie'}\nRegulamin: przeczytany i zaakceptowany\n${legacyFile}\nZatwierdź drużynę po zalogowaniu jako organizator:\n${appUrl}/zgloszenia\n\nIdentyfikator zgłoszenia: ${id}`;
  try{
   if(env.TOURNAMENT_GOOGLE_MAIL_URL&&env.TOURNAMENT_GOOGLE_MAIL_SECRET){
    if(!/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(env.TOURNAMENT_GOOGLE_MAIL_URL)||env.TOURNAMENT_GOOGLE_MAIL_SECRET.length<32)throw Error('mail configuration');
