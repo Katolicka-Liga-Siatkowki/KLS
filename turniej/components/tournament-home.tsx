@@ -1,6 +1,6 @@
 'use client';
 import {useEffect,useState} from 'react';
-import {ArrowRight,ChevronLeft,ChevronRight,Pause,Play} from 'lucide-react';
+import {ArrowRight,ChevronLeft,ChevronRight,Pause,Play,Instagram} from 'lucide-react';
 
 const photos=[
  {src:'/assets/previous-edition/1.webp',alt:'Uczestnicy poprzednich edycji turnieju na wspólnym zdjęciu w hali'},
@@ -51,6 +51,8 @@ export default function TournamentHome({onNavigate}:{onNavigate:(tab:string)=>vo
     </ul><h4>Coś ekstra</h4><ul className="home-donation-list"><li>Projektor nieba</li><li>Dyfuzor zapachowy wraz z naturalnymi olejkami eterycznymi (preferowane zapachy olejków: sosna, pomarańcza, drzewo herbaciane, eukaliptus)</li></ul><p>Wszystkie zebrane podczas turnieju dary przekażemy Hospicjum Stacjonarnemu Caritas Archidiecezji Warszawskiej przy Krakowskim Przedmieściu 62, by sprzyjały rozwojowi placówki i podopiecznych.</p><p><a href="/checklista" onClick={e=>{e.preventDefault();onNavigate('support')}}>Przejdź do checklisty pomocy i zaznacz, co przyniesie Twoja drużyna.</a></p></section>
     <section><h3>Kibice i nagrody</h3><p>Na turniej zapraszamy oczywiście także kibiców z Waszych parafii — trybuny pomieszczą wszystkich zainteresowanych. Kibiców również zachęcamy do włączenia się w zbiórkę. Dla najlepszych drużyn przewidziane są puchary i medale.</p></section>
     <section><h3>Kontakt</h3><p>Kontakt w razie pytań dodatkowych: <a href="mailto:zarzad.wpls@gmail.com">zarzad.wpls@gmail.com</a></p></section>
+    <section className="home-social"><h3>Obserwuj ligę</h3><div className="home-social-links"><a href="https://www.facebook.com/diecezjalnasiatkowka" target="_blank" rel="noopener noreferrer"><span className="social-icon facebook-icon" aria-hidden="true">f</span>Facebook</a><a href="https://www.instagram.com/diecezjalnasiatkowka/" target="_blank" rel="noopener noreferrer"><span className="social-icon instagram-icon" aria-hidden="true"><Instagram size={27}/></span>Instagram</a></div></section>
+    <section className="home-reports"><h3>Zobacz jak było na poprzednich edycjach</h3><ul><li><a href="https://diecezja.waw.pl/1-warszawsko-praski-turniej-charytatywny-w-siatkowke/" target="_blank" rel="noopener noreferrer">1. WARSZAWSKO-PRASKI TURNIEJ CHARYTATYWNY W SIATKÓWKĘ <ArrowRight size={17} aria-hidden="true"/></a></li><li><a href="https://diecezja.waw.pl/2-warszawsko-praski-turniej-charytatywny/" target="_blank" rel="noopener noreferrer">2. WARSZAWSKO-PRASKI TURNIEJ CHARYTATYWNY W SIATKÓWKĘ <ArrowRight size={17} aria-hidden="true"/></a></li></ul></section>
    </div>
   </section>
   <section className="home-gallery" aria-label="Zdjęcia z poprzednich edycji" aria-roledescription="karuzela" onMouseEnter={()=>setHovered(true)} onMouseLeave={()=>setHovered(false)} onFocusCapture={()=>setFocused(true)} onBlurCapture={e=>{if(!e.currentTarget.contains(e.relatedTarget as Node|null))setFocused(false)}}>
