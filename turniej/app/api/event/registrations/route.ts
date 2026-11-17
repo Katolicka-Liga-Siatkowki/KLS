@@ -17,7 +17,7 @@ export async function POST(request:Request){
   const parishName=typeof form.get('parishName')==='string'?String(form.get('parishName')).trim():'';if(!parishName||parishName.length>160)throw Error('Podaj nazwę parafii (maksymalnie 160 znaków).');
   if(form.get('rulesAccepted')!=='yes')throw Error('Potwierdź przeczytanie regulaminu turnieju.');
   const supporters=form.get('supporters');if(supporters!=='yes'&&supporters!=='no')throw Error('Wybierz, czy drużyna zabiera kibiców.');
-  const playerCount=Number(form.get('playerCount'));if(!Number.isInteger(playerCount)||playerCount<8||playerCount>12)throw Error('Liczba zawodników musi wynosić od 8 do 12.');
+  const playerCount=Number(form.get('playerCount'));if(!Number.isInteger(playerCount)||playerCount<8||playerCount>15)throw Error('Liczba zawodników musi wynosić od 8 do 15.');
   const current=await eventId();if(form.get('eventId')!==current)return json({error:'Turniej zmienił się. Odśwież formularz.'},409);
   const file=form.get('roster'),hasLegacyFile=file instanceof File&&file.size>0;
   const bytes=hasLegacyFile?new Uint8Array(await file.arrayBuffer()):new Uint8Array(),type=hasLegacyFile?rosterType(file.name,bytes):'',fileName=hasLegacyFile?(file.name.replace(/[\x00-\x1f\x7f/\\]/g,'_').slice(0,160)||'sklad'):'';
