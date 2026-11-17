@@ -13,8 +13,8 @@ export async function POST(request:Request){
  if(!await allowRequest(request,'registration',20))return json({error:'Zbyt wiele zgłoszeń. Spróbuj ponownie za 15 minut.'},429);
  try{
   const form=await limitedForm(request);if(form.get('website'))return json({error:'Nie udało się wysłać formularza.'},400);
-  const fields=registrationFields(form.get('teamName'),form.get('email'),form.get('phone'));if(form.get('consent')!=='yes')throw Error('Potwierdź przekazanie danych do obsługi zgłoszenia.');
   const parishName=typeof form.get('parishName')==='string'?String(form.get('parishName')).trim():'';if(!parishName||parishName.length>160)throw Error('Podaj nazwę parafii (maksymalnie 160 znaków).');
+  const fields=registrationFields(parishName.slice(0,100),form.get('email'),form.get('phone'));fields.teamKey=parishName.toLocaleLowerCase('pl-PL');if(form.get('consent')!=='yes')throw Error('Potwierdź przekazanie danych do obsługi zgłoszenia.');
   if(form.get('rulesAccepted')!=='yes')throw Error('Potwierdź przeczytanie regulaminu turnieju.');
   const supporters=form.get('supporters');if(supporters!=='yes'&&supporters!=='no')throw Error('Wybierz, czy drużyna zabiera kibiców.');
   const playerCount=Number(form.get('playerCount'));if(!Number.isInteger(playerCount)||playerCount<8||playerCount>15)throw Error('Liczba zawodników musi wynosić od 8 do 15.');
@@ -39,6 +39,19 @@ export async function PATCH(request:Request){
   if(!registration)return json({error:'Nie znaleziono zgłoszenia.'},404);
   if(body.action==='retry-email')return json({ok:true,mailStatus:await notifyRegistration(body.id)});
   if(body.eventId!==await eventId())return json({error:'Archiwalne zgłoszenia są tylko do odczytu.'},409);
+  if(body.action==='short-name'){
+   const name=typeof body.name==='string'?body.name.trim():'';if(!name||name.length>100)return json({error:'Podaj skróconą nazwę parafii, do 100 znaków.'},400);
+   const row=await env.DB.prepare('SELECT state,revision FROM tournament WHERE id=1').first<{state:string,revision:number}>();if(!row)return json({error:'Nie znaleziono turnieju.'},409);
+   const state=prepareSchedule(JSON.parse(row.state) as State),t=state.teams.find(t=>t.id===registration.team_id),marker=crypto.randomUUID();
+   if(state.teams.some(other=>other!==t&&other.name.toLocaleLowerCase('pl-PL')===name.toLocaleLowerCase('pl-PL')))return json({error:'Ta skrócona nazwa jest już używana przez inną drużynę.'},409);
+   if(t)t.name=name;
+   const results=await env.DB.batch([
+    env.DB.prepare('UPDATE tournament SET state=?,revision=revision+1,last_mutation=? WHERE id=1 AND revision=? AND EXISTS (SELECT 1 FROM tournament_event WHERE id=1 AND event_id=?)').bind(JSON.stringify(state),marker,row.revision,body.eventId),
+    env.DB.prepare('UPDATE event_registrations SET team_name=? WHERE id=? AND event_id=? AND EXISTS (SELECT 1 FROM tournament WHERE id=1 AND last_mutation=?)').bind(name,body.id,body.eventId,marker),
+    env.DB.prepare('UPDATE event_pledges SET team_name=? WHERE owner_id=? AND event_id=? AND EXISTS (SELECT 1 FROM tournament WHERE id=1 AND last_mutation=?)').bind(name,body.id,body.eventId,marker)
+   ]);if(!results[0].meta.changes||!results[1].meta.changes)return json({error:'Dane zmieniły się. Odśwież zgłoszenia.'},409);
+   return json({ok:true});
+  }
   if(body.action==='captain-code'||body.action==='retry-captain-email')return json({ok:true,captainMailStatus:await sendCaptainCode(body.id,body.eventId,body.action==='captain-code')});
   if(body.action==='approve'||body.action==='withdraw'){
    const row=await env.DB.prepare('SELECT state,revision FROM tournament WHERE id=1').first<{state:string,revision:number}>();if(!row)return json({error:'Nie znaleziono turnieju.'},409);

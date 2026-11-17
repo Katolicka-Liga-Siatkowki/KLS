@@ -21,7 +21,7 @@ const registrations=await route('registrations'),checklist=await route('checklis
 const {registrationFields,rosterType,supportItems}=await import(itemsUrl);
 const current=()=>sql.prepare('SELECT event_id FROM tournament_event').get().event_id;
 const req=(path,body,method='POST')=>new Request('https://tournament.example/api/event/'+path,{method,headers:{'Content-Type':'application/json',Origin:'https://tournament.example','CF-Connecting-IP':'192.0.2.1'},body:JSON.stringify(body)});
-async function register(name,ip){const form=new FormData();form.set('teamName',name);form.set('parishName','Parafia testowa');form.set('email','captain@example.com');form.set('phone','+48 500 600 700');form.set('playerCount','10');form.set('supporters','yes');form.set('rulesAccepted','yes');form.set('consent','yes');form.set('eventId',current());return registrations.POST(new Request('https://tournament.example/api/event/registrations',{method:'POST',headers:{Origin:'https://tournament.example','CF-Connecting-IP':ip},body:form}))}
+async function register(name,ip){const form=new FormData();form.set('parishName',name);form.set('email','captain@example.com');form.set('phone','+48 500 600 700');form.set('playerCount','10');form.set('supporters','yes');form.set('rulesAccepted','yes');form.set('consent','yes');form.set('eventId',current());return registrations.POST(new Request('https://tournament.example/api/event/registrations',{method:'POST',headers:{Origin:'https://tournament.example','CF-Connecting-IP':ip},body:form}))}
 test('document list preserves targets and registration validates required contacts and files',()=>{
  assert.equal(supportItems.length,14);assert.equal(supportItems.find(i=>i.id==='radia').target,13);assert.equal(supportItems.find(i=>i.id==='olejki').target,null);assert.equal(supportItems.filter(i=>i.extra).length,3);
  assert.throws(()=>registrationFields('Team','invalid','500600700'));assert.throws(()=>registrationFields('Team','mail@example.com','bad'));assert.throws(()=>registrationFields('','mail@example.com','500600700'));
@@ -30,7 +30,7 @@ test('document list preserves targets and registration validates required contac
 test('public registration, private contacts and files, token ownership, quantities and archive isolation',async()=>{
  sql.prepare('INSERT INTO tournament (id,revision,owner,state) VALUES (1,1,?,?)').run('owner@example.com',JSON.stringify((await import(domainUrl)).initial()));
  const first=await register('Asy','192.0.2.10');assert.equal(first.status,201,first.status!==201?await first.text():undefined);const a=await first.json();const second=await register('Wilki','192.0.2.11');assert.equal(second.status,201);const b=await second.json();
- const stored=sql.prepare('SELECT token_hash,parish_name,brings_supporters,player_count,rules_accepted FROM event_registrations WHERE id=?').get(a.id);assert.notEqual(stored.token_hash,a.token);assert.deepEqual({parish:stored.parish_name,supporters:stored.brings_supporters,players:stored.player_count,rules:stored.rules_accepted},{parish:'Parafia testowa',supporters:1,players:10,rules:1});
+ const stored=sql.prepare('SELECT token_hash,parish_name,brings_supporters,player_count,rules_accepted FROM event_registrations WHERE id=?').get(a.id);assert.notEqual(stored.token_hash,a.token);assert.deepEqual({parish:stored.parish_name,supporters:stored.brings_supporters,players:stored.player_count,rules:stored.rules_accepted},{parish:'Asy',supporters:1,players:10,rules:1});
  assert.equal((await register('Asy','192.0.2.12')).status,409);
  assert.equal((await registrations.GET(new Request('https://tournament.example/api/event/registrations'))).status,403);
  assert.equal((await roster.GET(new Request('https://tournament.example/api/event/roster?id='+a.id))).status,403);
@@ -59,6 +59,9 @@ test('public registration, private contacts and files, token ownership, quantiti
  admin=true;
  const already=await registrations.PATCH(req('registrations',{eventId:current(),id:a.id,action:'approve',players:'Another Player'},'PATCH'));assert.equal(already.status,200);assert.equal((await already.json()).alreadyAdded,true);
  let state=JSON.parse(sql.prepare('SELECT state FROM tournament WHERE id=1').get().state);assert.equal(state.teams.length,1);assert.deepEqual(state.teams[0].players,['Jan Kowalski','Anna Nowak']);
+ assert.equal((await registrations.PATCH(req('registrations',{eventId:current(),id:a.id,action:'short-name',name:'ASY WPLS'},'PATCH'))).status,200);
+ state=JSON.parse(sql.prepare('SELECT state FROM tournament WHERE id=1').get().state);assert.equal(state.teams[0].name,'ASY WPLS');assert.equal(sql.prepare('SELECT parish_name FROM event_registrations WHERE id=?').get(a.id).parish_name,'Asy');
+ assert(sql.prepare('SELECT team_name FROM event_pledges WHERE owner_id=?').all(a.id).every(row=>row.team_name==='ASY WPLS'));
  assert.equal((await registrations.PATCH(req('registrations',{eventId:current(),id:a.id,action:'withdraw'},'PATCH'))).status,200);
  state=JSON.parse(sql.prepare('SELECT state FROM tournament WHERE id=1').get().state);assert.equal(state.teams.length,0);assert(sql.prepare('SELECT withdrawn_at FROM event_registrations WHERE id=?').get(a.id).withdrawn_at);
  assert.equal((await registrations.PATCH(req('registrations',{eventId:current(),id:a.id,action:'approve',players:''},'PATCH'))).status,200);
