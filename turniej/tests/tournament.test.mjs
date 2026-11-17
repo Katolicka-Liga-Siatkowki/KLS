@@ -200,6 +200,11 @@ test('new tournament requires organizer confirmation, clears competition and tea
 function playSet(s,m,side){for(let p=0;p<m.rules.target;p++)mutate(s,{type:'point',id:m.id,side},true)}
 function approve(s,m){mutate(s,{type:'mvp',id:m.id,values:[s.teams.find(t=>t.id===s.slots[m.b]).players[0],s.teams.find(t=>t.id===s.slots[m.a]).players[0],m.a+':'+s.teams.find(t=>t.id===s.slots[m.a]).players[0]]},true);mutate(s,{type:'finish',id:m.id},true)}
 function drawSettings(s,extra={}){mutate(s,{type:'settings',value:{...s.settings,eliminationFormat:'two',eliminationTwoSets:true,draw11:2,win20:3,loss02:0,confirmed:true,...extra}},true)}
+test('only organizer publishes competition and a new tournament starts hidden',()=>{
+ const s=setup(2);assert.notEqual(s.publicCompetition,true);assert.throws(()=>mutate(s,{type:'visibility',visible:true},false));
+ mutate(s,{type:'visibility',visible:true},true);assert.equal(s.publicCompetition,true);
+ mutate(s,{type:'new-tournament',confirmed:true},true);assert.equal(s.publicCompetition,false);
+});
 test('two-set elimination supports 2:0, 1:1 and 0:2 with live draw points, approval and undo',()=>{
  for(const sides of [[0,0],[0,1],[1,0],[1,1]]){
   const s=setup(2);drawSettings(s);const m=s.matches[0];assert(usesTwoSets(s,m));mutate(s,{type:'start',id:m.id,court:1},true);

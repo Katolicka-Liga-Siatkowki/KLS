@@ -4,8 +4,8 @@ import {useEffect,useRef,useState} from 'react';
 const key='centrum-turnieju:view:v1';
 const tabs=['overview','schedule','table','mvp','bracket','teams','ref','settings','support','registrations'];
 const filters=['Wszystkie','Oczekuje','W grze','Zakończone'];
-const tabPaths:Record<string,string>={registrations:'/zgloszenia',support:'/checklista'};
-function pathTab(){const path=decodeURIComponent(window.location.pathname).replace(/\/$/,'');return path==='/zgloszenia'||path==='/zgłoszenia'?'registrations':path==='/checklista'?'support':null}
+const tabPaths:Record<string,string>={overview:'/centrum',schedule:'/terminarz',table:'/tabela',mvp:'/ranking-mvp',bracket:'/faza-pucharowa',teams:'/druzyny',ref:'/panel-sedziego',settings:'/panel-zawodow',registrations:'/zgloszenia',support:'/checklista'};
+function pathTab(){const path=decodeURIComponent(window.location.pathname).replace(/\/$/,'');return path==='/zgłoszenia'?'registrations':Object.entries(tabPaths).find(([,value])=>value===path)?.[0]??null}
 type View={tab:string,selected:number|null,filter:string,pairing:string,mvpPhase:MvpPhase};
 const defaults:View={tab:'overview',selected:null,filter:'Wszystkie',pairing:'current',mvpPhase:'regular'};
 export function useTournamentView(loading:boolean){

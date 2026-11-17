@@ -1,6 +1,6 @@
-export function visibleTournamentTab(role:string,id:string){
+export function visibleTournamentTab(role:string,id:string,publicCompetition=false){
  if(role==='organizer')return true;
  if(role==='referee')return id==='ref'||id==='schedule';
- return ['overview','schedule','table','bracket','teams','support','registrations'].includes(id);
+ return (publicCompetition?['overview','schedule','table','bracket','teams','support','registrations']:['teams','support','registrations']).includes(id);
 }
 export function canExportTournament(role:string){return role==='organizer'}
