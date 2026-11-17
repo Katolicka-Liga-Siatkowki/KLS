@@ -1,0 +1,20 @@
+{
+  "id": "/",
+  "name": "Gramy Razem — Turnieje",
+  "short_name": "Gramy Razem",
+  "description": "Zgłoszenia, checklista pomocy i wyniki turnieju siatkówki.",
+  "lang": "pl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f7f8",
+  "theme_color": "#292f3b",
+  "icons": [
+    {"src":"/icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},
+    {"src":"/icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any"}
+  ],
+  "shortcuts": [
+    {"name":"Zgłoszenia","url":"/zgloszenia","icons":[{"src":"/icons/icon-192.png","sizes":"192x192"}]},
+    {"name":"Checklista pomocy","url":"/checklista","icons":[{"src":"/icons/icon-192.png","sizes":"192x192"}]}
+  ]
+}
