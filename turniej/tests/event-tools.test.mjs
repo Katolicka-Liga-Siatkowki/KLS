@@ -87,3 +87,14 @@ test('old unchunked roster files remain downloadable after the migration',async(
  admin=false;const result=await register('Legacy file team','192.0.2.99');assert.equal(result.status,201,result.status!==201?await result.text():undefined);const entry=await result.json(),oldBytes=new TextEncoder().encode('%PDF-1.4\nLegacy');sql.prepare('UPDATE event_registrations SET file_name=?,file_type=?,file_chunk_count=0,file_data=?,file_size=? WHERE id=?').run('stary-sklad.pdf','application/pdf',oldBytes,oldBytes.length,entry.id);sql.prepare('DELETE FROM event_roster_chunks WHERE registration_id=?').run(entry.id);
  admin=true;const response=await roster.GET(new Request('https://tournament.example/api/event/roster?id='+entry.id));assert.equal(response.status,200);assert.equal(await response.text(),'%PDF-1.4\nLegacy');
 });
+
+test('registration capacity preserves chronological reserve order after a withdrawal',async()=>{
+ sql.prepare("UPDATE event_registrations SET status='rejected',team_id=NULL WHERE event_id=?").run(current());
+ for(let i=0;i<16;i++){admin=false;const result=await register('Accepted parish '+i,'198.51.100.'+(i+1));assert.equal(result.status,201);const row=await result.json();sql.prepare("UPDATE event_registrations SET status='accepted',team_id=? WHERE id=?").run('accepted-'+i,row.id)}
+ admin=false;const a=await (await register('Reserve first','198.51.100.40')).json(),b=await (await register('Reserve second','198.51.100.41')).json();
+ admin=true;let data=await (await registrations.GET(new Request('https://tournament.example/api/event/registrations'))).json();assert.equal(data.acceptedCount,16);assert.equal(data.registrations.find(r=>r.id===a.id).reserve_position,1);assert.equal(data.registrations.find(r=>r.id===b.id).reserve_position,2);
+ assert.equal((await registrations.PATCH(req('registrations',{eventId:current(),id:a.id,action:'approve',players:''},'PATCH'))).status,409);
+ sql.prepare("UPDATE event_registrations SET status='rejected',team_id=NULL WHERE team_id='accepted-0'").run();
+ data=await (await registrations.GET(new Request('https://tournament.example/api/event/registrations'))).json();assert.equal(data.acceptedCount,15);assert.equal(data.registrations.find(r=>r.id===a.id).reserve_position,1);assert.equal(data.registrations.find(r=>r.id===b.id).reserve_position,2);
+ assert(data.registrations.findIndex(r=>r.id===a.id)<data.registrations.findIndex(r=>r.id===b.id));
+});

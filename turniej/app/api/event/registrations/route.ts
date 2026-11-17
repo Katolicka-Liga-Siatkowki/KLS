@@ -6,7 +6,10 @@ import {teamFromRegistration,removeRegisteredTeam,updateApprovedStateSql,approve
 import {prepareSchedule,type State} from '@/lib/tournament';
 export async function GET(request:Request){
  if(!await isEventOrganizer())return json({error:'Zgłoszenia są dostępne tylko organizatorowi.'},403);
- const event=await readableEvent(request,true);const rows=await env.DB.prepare('SELECT id,team_name,email,phone,parish_name,brings_supporters,player_count,rules_accepted,file_name,file_size,status,created_at,team_id,withdrawn_at,mail_status,mail_sent_at,captain_mail_status,captain_mail_sent_at FROM event_registrations WHERE event_id=? ORDER BY created_at DESC').bind(event).all();return json({eventId:event,registrations:rows.results,mailConfigured:registrationMailConfigured()});
+ const event=await readableEvent(request,true);const rows=await env.DB.prepare('SELECT id,team_name,email,phone,parish_name,brings_supporters,player_count,rules_accepted,file_name,file_size,status,created_at,team_id,withdrawn_at,mail_status,mail_sent_at,captain_mail_status,captain_mail_sent_at,reserve_list FROM event_registrations WHERE event_id=? ORDER BY created_at ASC,rowid ASC').bind(event).all();
+ const acceptedCount=rows.results.filter((r:any)=>r.status==='accepted'&&r.team_id).length;let reservePosition=0;
+ const registrations=rows.results.map((r:any,index:number)=>({...r,submission_number:index+1,reserve_position:!r.team_id&&r.status!=='rejected'&&(r.reserve_list||acceptedCount>=16)?++reservePosition:null}));
+ return json({eventId:event,registrations,acceptedCount,mailConfigured:registrationMailConfigured()});
 }
 export async function POST(request:Request){
  if(!originAllowed(request))return json({error:'Niedozwolone żądanie.'},403);
@@ -25,6 +28,7 @@ export async function POST(request:Request){
   // The payload lives in chunks; keep a nonempty marker in the legacy BLOB
   // column to avoid empty-blob/null coercion in older SQLite bindings.
   const statements=[env.DB.prepare('INSERT INTO event_registrations (id,event_id,team_name,team_key,email,phone,parish_name,brings_supporters,player_count,rules_accepted,file_name,file_type,file_data,file_size,token_hash,created_at,file_chunk_count) SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE EXISTS (SELECT 1 FROM tournament_event WHERE id=1 AND event_id=?) AND EXISTS (SELECT 1 FROM tournament WHERE id=1)').bind(id,current,fields.teamName,fields.teamKey,fields.email,fields.phone,parishName,supporters==='yes'?1:0,playerCount,1,fileName,type,new Uint8Array([0]).buffer,bytes.length,hash,new Date().toISOString(),chunkCount,current)];
+  statements.push(env.DB.prepare("UPDATE event_registrations SET reserve_list=1 WHERE id=? AND (SELECT COUNT(*) FROM event_registrations WHERE event_id=? AND status='accepted' AND team_id IS NOT NULL)>=16").bind(id,current));
   for(let i=0;i<chunkCount;i++)statements.push(env.DB.prepare('INSERT INTO event_roster_chunks (registration_id,chunk_index,data) SELECT ?,?,? WHERE EXISTS (SELECT 1 FROM event_registrations WHERE id=?)').bind(id,i,bytes.slice(i*chunkSize,(i+1)*chunkSize).buffer,id));
   const results=await env.DB.batch(statements);if(!results[0].meta.changes)return json({error:'Zgłoszenia nie są jeszcze dostępne lub turniej się zmienił.'},409);
   let mailStatus='pending';try{mailStatus=await notifyRegistration(id)}catch{/* The registration is saved even if the notification service fails. */}
@@ -59,8 +63,10 @@ export async function PATCH(request:Request){
    if(body.action==='approve'){
     if(registration.team_id&&state.teams.some(t=>t.id===registration.team_id))return json({ok:true,teamId:registration.team_id,alreadyAdded:true});
     if(registration.team_id)return json({error:'Zgłoszenie jest już powiązane z drużyną. Odśwież listę.'},409);
+    const capacity=await env.DB.prepare("SELECT COUNT(*) AS total FROM event_registrations WHERE event_id=? AND status='accepted' AND team_id IS NOT NULL").bind(body.eventId).first<{total:number}>();
+    if((capacity?.total??0)>=16)return json({error:'Zatwierdzono już 16 drużyn. To zgłoszenie pozostaje na liście rezerwowej. Najpierw usuń drużynę, która zrezygnowała.'},409);
     const team=teamFromRegistration(state,body.id,registration.team_name,body.players,body.existingTeamId);
-    const results=await env.DB.batch([env.DB.prepare(updateApprovedStateSql).bind(JSON.stringify(state),marker,row.revision,body.id,body.eventId,registration.status,body.eventId),env.DB.prepare(approveRegistrationSql).bind(team.id,body.id,body.eventId,marker)]);
+    const results=await env.DB.batch([env.DB.prepare(updateApprovedStateSql).bind(JSON.stringify(state),marker,row.revision,body.id,body.eventId,registration.status,body.eventId),env.DB.prepare(approveRegistrationSql).bind(team.id,body.id,body.eventId,marker),env.DB.prepare("UPDATE event_registrations SET reserve_list=1 WHERE event_id=? AND status<>'rejected' AND team_id IS NULL AND (SELECT COUNT(*) FROM event_registrations WHERE event_id=? AND status='accepted' AND team_id IS NOT NULL)>=16 AND EXISTS (SELECT 1 FROM tournament WHERE id=1 AND last_mutation=?)").bind(body.eventId,body.eventId,marker)]);
     if(!results[0].meta.changes||!results[1].meta.changes)return json({error:'Dane zmieniły się na innym urządzeniu. Odśwież listę i zatwierdź ponownie.'},409);
     let captainMailStatus='pending';try{captainMailStatus=await sendCaptainCode(body.id,body.eventId)}catch{/* Approval stays saved; organizer can retry delivery. */}
     return json({ok:true,teamId:team.id,needsRoster:team.players.length===0,captainMailStatus});

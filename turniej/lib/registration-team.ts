@@ -10,6 +10,6 @@ export function teamFromRegistration(state:State,id:string,name:string,roster:un
 }
 export function removeRegisteredTeam(state:State,teamId:string){mutate(state,{type:'delete-team',teamId},true)}
 export const updateApprovedStateSql='UPDATE tournament SET state=?,revision=revision+1,last_mutation=? WHERE id=1 AND revision=? AND EXISTS (SELECT 1 FROM event_registrations WHERE id=? AND event_id=? AND status=? AND team_id IS NULL) AND EXISTS (SELECT 1 FROM tournament_event WHERE id=1 AND event_id=?)';
-export const approveRegistrationSql="UPDATE event_registrations SET status='accepted',team_id=?,withdrawn_at=NULL WHERE id=? AND event_id=? AND EXISTS (SELECT 1 FROM tournament WHERE id=1 AND last_mutation=?)";
+export const approveRegistrationSql="UPDATE event_registrations SET status='accepted',team_id=?,withdrawn_at=NULL,reserve_list=0 WHERE id=? AND event_id=? AND EXISTS (SELECT 1 FROM tournament WHERE id=1 AND last_mutation=?)";
 export const removeStateSql='UPDATE tournament SET state=?,revision=revision+1,last_mutation=? WHERE id=1 AND revision=?';
 export const unlinkRegistrationSql="UPDATE event_registrations SET status='rejected',team_id=NULL,withdrawn_at=? WHERE team_id=? AND event_id=(SELECT event_id FROM tournament_event WHERE id=1) AND EXISTS (SELECT 1 FROM tournament WHERE id=1 AND last_mutation=?)";
