@@ -171,6 +171,17 @@ test('only organizer can upload or remove a logo, including during play',()=>{
  mutate(s,{type:'logo',teamId,logo:''},true);assert.equal(s.teams[0].logo,undefined);
 });
 
+test('only organizer edits the public introduction; it survives a new tournament',()=>{
+ const s=initial();assert.equal(s.description,undefined);
+ assert.throws(()=>mutate(s,{type:'description',description:'Nowy opis'},false));
+ assert.throws(()=>mutate(s,{type:'description',description:'  '},true));
+ assert.throws(()=>mutate(s,{type:'description',description:'x'.repeat(2001)},true));
+ mutate(s,{type:'description',description:'  Turniej dla wszystkich.\nZapraszamy!  '},true);
+ assert.equal(s.description,'Turniej dla wszystkich.\nZapraszamy!');
+ const saved=JSON.parse(JSON.stringify(s));assert.equal(saved.description,s.description);
+ mutate(saved,{type:'new-tournament',confirmed:true},true);assert.equal(saved.description,s.description);
+});
+
 test('assigning from the team list moves or clears a letter atomically and rejects occupied letters',()=>{
  const s=setup(4),id=s.teams[0].id;
  mutate(s,{type:'assign-team',teamId:id,letter:'P'},true);
