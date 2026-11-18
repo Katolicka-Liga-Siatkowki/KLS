@@ -10,7 +10,14 @@ const photos=[
  {src:'/assets/previous-edition/5.webp',alt:'Przekazanie darów zebranych podczas akcji charytatywnej'},
 ];
 
-export default function TournamentHome({onNavigate}:{onNavigate:(tab:string)=>void}){
+export const DEFAULT_HOME_DESCRIPTION='Zapraszamy na 3. Warszawsko-Praski Turniej Charytatywny pod szyldem Warszawsko-Praskiej Ligi Siatkówki. W zawodach mogą wziąć udział członkowie wspólnot działających przy parafiach diecezji warszawsko-praskiej i archidiecezji warszawskiej oraz ich duszpasterze. To nie tylko sportowa rywalizacja, ale także świetna okazja do integracji, wspólnej zabawy i pomagania!';
+const leagueName='Warszawsko-Praskiej Ligi Siatkówki';
+function linkedDescription(description:string){
+ const parts=description.split(leagueName);
+ return parts.flatMap((part,index)=>index===parts.length-1?[part]:[part,<a key={index} href="https://diecezja.waw.pl/warszawsko-praska-liga-siatkowki-wpls/" target="_blank" rel="noopener noreferrer">{leagueName}</a>]);
+}
+
+export default function TournamentHome({onNavigate,description}:{onNavigate:(tab:string)=>void,description?:string}){
  const [current,setCurrent]=useState(0),[playing,setPlaying]=useState(false),[hovered,setHovered]=useState(false),[focused,setFocused]=useState(false),[visible,setVisible]=useState(true);
  useEffect(()=>{
   const motion=window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -30,7 +37,7 @@ export default function TournamentHome({onNavigate}:{onNavigate:(tab:string)=>vo
   <section className="home-intro panel">
    <div className="eyebrow">SPORT ŁĄCZY. POMOC ZOSTAJE.</div>
    <h2>Gramy razem w dobrej sprawie.</h2>
-   <p className="home-lead"><strong>Zapraszamy na 3. Warszawsko-Praski Turniej Charytatywny pod szyldem <a href="https://diecezja.waw.pl/warszawsko-praska-liga-siatkowki-wpls/" target="_blank" rel="noopener noreferrer">Warszawsko-Praskiej Ligi Siatkówki</a>. W zawodach mogą wziąć udział członkowie wspólnot działających przy parafiach diecezji warszawsko-praskiej i archidiecezji warszawskiej oraz ich duszpasterze. To nie tylko sportowa rywalizacja, ale także świetna okazja do integracji, wspólnej zabawy i pomagania!</strong></p>
+   <p className="home-lead"><strong>{linkedDescription(description??DEFAULT_HOME_DESCRIPTION)}</strong></p>
    <div className="button-row"><a className="primary" href="/zgloszenia" onClick={e=>{e.preventDefault();onNavigate('registrations')}}>Zgłoś drużynę <ArrowRight size={17}/></a><a className="secondary" href="/checklista" onClick={e=>{e.preventDefault();onNavigate('support')}}>Zobacz checklistę pomocy</a></div>
    <div className="home-description">
     <section><h3>Kiedy i gdzie zagramy?</h3><p>Wydarzenie odbędzie się w sobotę <strong>12 grudnia 2026 r.</strong> na hali widowiskowo-sportowej w Falenicy (ul. Poezji 5, 04-994 Warszawa).</p></section>
